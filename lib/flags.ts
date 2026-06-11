@@ -13,7 +13,14 @@ export function emojiToIso(flag?: string | null): string | null {
   return letters.length === 2 ? letters.join('').toLowerCase() : null;
 }
 
+// flagcdn solo sirve alturas predefinidas; pedir una altura arbitraria (ej.
+// h18) devuelve 404 y la bandera no se ve. Redondeamos a la altura valida mas
+// cercana hacia arriba.
+const FLAGCDN_HEIGHTS = [20, 24, 40, 60, 80, 120, 240];
+
 export function flagImgUrl(flag?: string | null, height = 20): string | null {
   const iso = emojiToIso(flag);
-  return iso ? `https://flagcdn.com/h${height}/${iso}.png` : null;
+  if (!iso) return null;
+  const h = FLAGCDN_HEIGHTS.find((x) => x >= height) ?? 240;
+  return `https://flagcdn.com/h${h}/${iso}.png`;
 }

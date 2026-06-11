@@ -20,7 +20,7 @@ const STATUS: Record<DisplayStatus, { text: string; className: string }> = {
 function TeamRow({ team }: { team: Match['homeTeam'] }) {
   return (
     <div className="flex min-w-0 items-center gap-2">
-      <Flag flag={team.flag} name={team.name} height={18} />
+      <Flag flag={team.flag} code={team.code} name={team.name} height={18} />
       <span className="truncate font-display font-semibold">{team.name}</span>
     </div>
   );
