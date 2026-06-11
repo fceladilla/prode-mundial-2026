@@ -2,14 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import {
-  collection,
-  getDocs,
-  limit,
-  orderBy,
-  query,
-  where,
-} from 'firebase/firestore';
+import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { getDbClient } from '@/lib/firebase';
 import { formatDisplayName } from '@/lib/formatName';
 import type { Match } from '@/lib/types';
@@ -60,6 +53,7 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const matchesCache = useRef<Match[] | null>(null);
+  const usersCache = useRef<UserResult[] | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
   // Busqueda con debounce de 300ms.
@@ -95,31 +89,24 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
         .slice(0, MAX_PER_GROUP)
         .map((match) => ({ kind: 'match' as const, match }));
 
-      // Usuarios: prefix-search sobre displayNameLower (Firestore no tiene
-      // full-text search; ver CLAUDE.md / mejoras).
-      let userHits: Result[] = [];
-      try {
-        const lower = t.toLowerCase();
+      // Usuarios: la coleccion es chica y publica, asi que tambien se carga
+      // una vez y se filtra en memoria (busca por subcadena y sin acentos,
+      // sin depender de que el doc tenga displayNameLower).
+      if (!usersCache.current) {
         const snap = await getDocs(
-          query(
-            collection(db, 'users'),
-            where('displayNameLower', '>=', lower),
-            where('displayNameLower', '<=', lower + ''),
-            limit(MAX_PER_GROUP)
-          )
+          query(collection(db, 'users'), orderBy('totalPoints', 'desc'))
         );
-        userHits = snap.docs.map((d) => ({
-          kind: 'user' as const,
-          user: {
-            uid: d.id,
-            displayName: d.data().displayName ?? 'Jugador',
-            photoURL: d.data().photoURL ?? null,
-            totalPoints: d.data().totalPoints ?? 0,
-          },
+        usersCache.current = snap.docs.map((d) => ({
+          uid: d.id,
+          displayName: d.data().displayName ?? 'Jugador',
+          photoURL: d.data().photoURL ?? null,
+          totalPoints: d.data().totalPoints ?? 0,
         }));
-      } catch {
-        // Sin resultados de usuarios si la query falla.
       }
+      const userHits: Result[] = usersCache.current
+        .filter((u) => normalize(u.displayName).includes(nt))
+        .slice(0, MAX_PER_GROUP)
+        .map((user) => ({ kind: 'user' as const, user }));
 
       setResults([...matchHits, ...userHits]);
       setActive(0);
