@@ -19,5 +19,15 @@ export function formatLocalKickoff(ms: number): string {
   })
     .format(date)
     .replace('.', '');
-  return `${time} (${day})`;
+
+  // Sigla de la zona del usuario (ej. "GMT-3", "CEST"). La sacamos con
+  // formatToParts porque es la unica forma fiable de aislar ese pedazo.
+  const tz = new Intl.DateTimeFormat('es-AR', {
+    hour: '2-digit',
+    timeZoneName: 'short',
+  })
+    .formatToParts(date)
+    .find((p) => p.type === 'timeZoneName')?.value;
+
+  return tz ? `${time} ${tz} (${day})` : `${time} (${day})`;
 }
