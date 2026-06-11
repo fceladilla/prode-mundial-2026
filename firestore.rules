@@ -25,12 +25,15 @@ service cloud.firestore {
     }
 
     // ---- PREDICTIONS ----
-    // Solo el dueno; solo mientras el partido siga "upcoming" Y todavia no haya
-    // llegado su horario de inicio (scheduledAt en el futuro). No puede
-    // auto-asignarse puntos.
+    // Lectura: el dueno siempre; otros usuarios solo cuando el partido ya no
+    // esta "upcoming" (empezo o termino). Escritura: solo el dueno, solo
+    // mientras el partido siga "upcoming" y antes de su horario de inicio.
+    // No puede auto-asignarse puntos.
     match /predictions/{predId} {
       allow read: if request.auth != null
         && resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null
+        && matchData(resource.data.matchId).status != 'upcoming';
       allow create, update: if request.auth != null
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.predictedHomeGoals >= 0
@@ -46,6 +49,22 @@ service cloud.firestore {
     match /matches/{matchId} {
       allow read: if true;
       allow write: if false;
+    }
+
+    // ---- COMMENTS ----
+    // Foro global (matchId == null) y comentarios por partido. Cualquiera lee;
+    // solo usuarios autenticados crean, y solo a su propio nombre. Nadie edita
+    // (ni el autor); borrar solo el propio.
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 500;
+      allow update: if false;
+      allow delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
     }
   }
 }

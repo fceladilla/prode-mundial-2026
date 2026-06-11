@@ -6,6 +6,8 @@ import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { getDbClient } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { Flag } from './Flag';
+import { CommentSection } from './CommentSection';
+import { MatchPredictionsPanel } from './MatchPredictionsPanel';
 import { formatLocalKickoff } from '@/lib/time';
 import type { Match, Prediction } from '@/lib/types';
 
@@ -41,6 +43,8 @@ export function MatchCard({
   const [away, setAway] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [showPredictions, setShowPredictions] = useState(false);
+  const [showComments, setShowComments] = useState(false);
 
   useEffect(() => {
     if (prediction) {
@@ -87,6 +91,8 @@ export function MatchCard({
         {
           userId: user.uid,
           matchId: match.id,
+          displayName: user.displayName ?? 'Jugador',
+          photoURL: user.photoURL ?? '',
           predictedHomeGoals: h,
           predictedAwayGoals: a,
           pointsEarned: 0,
@@ -108,6 +114,7 @@ export function MatchCard({
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: Math.min(index * 0.04, 0.4), duration: 0.25 }}
       className="rounded-xl border border-white/10 bg-carbon p-4"
+      id={`match-${match.id}`}
     >
       <div className="mb-3 flex items-center justify-between text-xs text-suave">
         <span title={`ARG ${match.scheduledAtARG} · ESP ${match.scheduledAtESP}`}>
@@ -193,6 +200,34 @@ export function MatchCard({
         <p className="mt-3 text-right text-xs text-suave">
           Ingresa para pronosticar
         </p>
+      )}
+
+      {/* Predicciones de todos (solo post-inicio) y comentarios del partido,
+          plegados por defecto para no abrir listeners en cada tarjeta. */}
+      <div className="mt-3 flex gap-4 border-t border-white/10 pt-2 text-xs text-suave">
+        {match.status !== 'upcoming' && (
+          <button
+            onClick={() => setShowPredictions((v) => !v)}
+            className="hover:text-white"
+          >
+            📊 Predicciones {showPredictions ? '▴' : '▾'}
+          </button>
+        )}
+        <button
+          onClick={() => setShowComments((v) => !v)}
+          className="hover:text-white"
+        >
+          💬 Comentarios {showComments ? '▴' : '▾'}
+        </button>
+      </div>
+
+      {showPredictions && match.status !== 'upcoming' && (
+        <MatchPredictionsPanel matchId={match.id} matchStatus={match.status} />
+      )}
+      {showComments && (
+        <div className="mt-3">
+          <CommentSection matchId={match.id} />
+        </div>
       )}
     </motion.div>
   );

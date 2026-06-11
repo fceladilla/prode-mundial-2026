@@ -42,15 +42,17 @@ Built in the MVP:
 
 ```
 app/
-├── layout.tsx       ← RootLayout: fonts, Providers, Navbar + leaderboard Sidebar
-├── providers.tsx    ← Client wrapper around AuthProvider
-├── page.tsx         ← Home / fixture grouped by stage; predictions entered inline on each card
-└── ranking/page.tsx ← Full leaderboard (for mobile, where the sidebar is hidden)
+├── layout.tsx              ← RootLayout: fonts, Providers, Navbar + leaderboard Sidebar
+├── providers.tsx           ← Client wrapper around AuthProvider
+├── page.tsx                ← Home / fixture grouped by stage; predictions entered inline on each card
+├── ranking/page.tsx        ← Full leaderboard (for mobile, where the sidebar is hidden)
+├── foro/page.tsx           ← Global comment forum (CommentSection with no matchId)
+└── perfil/[userId]/page.tsx ← Public profile: totals + predictions revealed for started matches
 ```
 
-Planned but **not yet built** (see SOP §8): `partido/[id]/page.tsx` (match detail) and `perfil/page.tsx` (my predictions). For the MVP, score entry happens inline on `MatchCard` rather than on a dedicated detail page.
+Planned but **not yet built** (see SOP §8): `partido/[id]/page.tsx` (match detail). Score entry happens inline on `MatchCard`, which also hosts collapsible per-match comments (`CommentSection`) and the all-players predictions panel (`MatchPredictionsPanel`, post-kickoff only).
 
-Components live flat under `components/` (`Navbar`, `Sidebar`, `MatchCard`, `LeaderboardTable`, `Avatar`), not in the nested subfolders the SOP proposes.
+Components live flat under `components/` (`Navbar`, `Sidebar`, `MatchCard`, `LeaderboardTable`, `Avatar`, `SearchBar`, `CommentSection`, `MatchPredictionsPanel`), not in the nested subfolders the SOP proposes. `SearchBar` (in the Navbar) filters matches client-side and prefix-searches users via the `displayNameLower` field (written/backfilled on sign-in in `hooks/useAuth.tsx`).
 
 ### Firebase initialization (important)
 
@@ -64,8 +66,11 @@ Four top-level collections:
 |---|---|
 | `users/{userId}` | Profile + denormalized totals (`totalPoints`, `exactResults`, `correctResults`) |
 | `matches/{matchId}` | Fixture data, `status: "upcoming"\|"live"\|"finished"`, and `result` (set by Cloud Function only) |
-| `predictions/{userId}_{matchId}` | One doc per user per match; `evaluated: false` until match finishes |
+| `predictions/{userId}_{matchId}` | One doc per user per match; `evaluated: false` until match finishes. Carries a `displayName`/`photoURL` snapshot so other users can render them post-kickoff. |
+| `comments/{commentId}` | Forum comments. `matchId: null` = global forum; otherwise tied to a match. Immutable once posted (author may delete). |
 | `leaderboard/{userId}` | Materialized view (SOP). **Not used in the MVP** — the leaderboard reads `users` directly, ordered by `totalPoints` desc. |
+
+Other users' predictions become readable once `match.status !== 'upcoming'` (enforced in rules). A query on someone else's `userId` is rejected by the rules engine — read the docs by deterministic id `{userId}_{matchId}` instead (see `app/perfil/[userId]/page.tsx`).
 
 `scheduledAt` is stored as UTC timestamp. `scheduledAtARG` and `scheduledAtESP` are pre-computed strings (UTC–3 and UTC+2 respectively — no DST for Argentina; Spain uses CEST in June–July).
 
@@ -76,7 +81,9 @@ Four top-level collections:
 - Miss → **0 points**
 - Exact replaces (does not stack with) correct-outcome; max 5 pts per match.
 
-Scoring is applied by the **`scripts/setResult.ts` admin script** — run `npm run set-result -- <matchId> <home> <away>`. It sets `result` + `status: "finished"`, evaluates every prediction with `computePoints` (`lib/scoring.ts`), and increments `users.totalPoints`/`exactResults`/`correctResults` via the Admin SDK (bypasses rules; no Blaze/Functions needed). Idempotent — skips predictions already `evaluated`. The `evaluatePredictions` Cloud Function (SOP §7) that would do this automatically on `matches/{matchId}` update is the planned upgrade, **not yet built** (needs the Blaze plan). Security rules block clients from writing their own score fields, so this admin path is the only way points are awarded.
+Scoring is applied by the **`scripts/setResult.ts` admin script** — run `npm run set-result -- <matchId> <home> <away>`. It sets `result` + `status: "finished"`, evaluates every prediction with `computePoints` (`lib/scoring.ts`), and increments `users.totalPoints`/`exactResults`/`correctResults` via the Admin SDK (bypasses rules; no Blaze/Functions needed). Idempotent — skips predictions already `evaluated`. The `evaluatePredictions` Cloud Function (SOP §7) that would do this automatically on `matches/{matchId}` update is the planned upgrade, **not yet built** (needs the Blaze plan). Security rules block clients from writing their own score fields, so the Admin SDK is the only way points are awarded.
+
+**Automatic sync**: `scripts/syncResults.ts` (`npm run sync-results`) pulls scores from football-data.org (competition `WC`), matches fixtures by FIFA code pair + UTC date, marks in-play matches `live`, and applies the same scoring logic on finished ones. `.github/workflows/sync-results.yml` runs it every 30 min; it needs the `FOOTBALL_DATA_API_KEY` and `FIREBASE_SERVICE_ACCOUNT` (one-line JSON) GitHub Actions secrets.
 
 ## Business Rules
 

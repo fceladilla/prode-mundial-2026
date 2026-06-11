@@ -46,11 +46,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const u = result.user;
 
     // Crear el perfil en Firestore la primera vez que ingresa.
+    // displayNameLower habilita el prefix-search de la barra de busqueda
+    // (Firestore no tiene full-text search).
+    const displayName = u.displayName ?? 'Jugador';
     const userRef = doc(getDbClient(), 'users', u.uid);
     const snap = await getDoc(userRef);
     if (!snap.exists()) {
       await setDoc(userRef, {
-        displayName: u.displayName ?? 'Jugador',
+        displayName,
+        displayNameLower: displayName.toLowerCase(),
         email: u.email,
         photoURL: u.photoURL,
         totalPoints: 0,
@@ -58,6 +62,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         correctResults: 0,
         createdAt: serverTimestamp(),
       });
+    } else {
+      // Backfill para usuarios creados antes de que existiera displayNameLower
+      // (y refresco de nombre/foto si cambiaron en Google).
+      await setDoc(
+        userRef,
+        {
+          displayName,
+          displayNameLower: displayName.toLowerCase(),
+          photoURL: u.photoURL,
+        },
+        { merge: true }
+      );
     }
   };
 

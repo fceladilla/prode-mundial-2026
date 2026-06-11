@@ -9,6 +9,7 @@
     "lint": "next lint",
     "seed": "tsx scripts/seedMatches.ts",
     "set-result": "tsx scripts/setResult.ts",
+    "sync-results": "tsx scripts/syncResults.ts",
     "reset-scores": "tsx scripts/resetScores.ts"
   },
   "dependencies": {
