@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function matchData(matchId) {
+      return get(/databases/$(database)/documents/matches/$(matchId)).data;
+    }
+
+    // ---- USERS ----
+    // Lectura publica (necesaria para el leaderboard). El usuario crea su propio
+    // perfil pero NO puede tocar sus campos de puntaje: eso solo lo hace la
+    // logica de servidor (Admin SDK, que ignora estas reglas).
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.totalPoints == 0
+        && request.resource.data.exactResults == 0
+        && request.resource.data.correctResults == 0;
+      allow update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.totalPoints == resource.data.totalPoints
+        && request.resource.data.exactResults == resource.data.exactResults
+        && request.resource.data.correctResults == resource.data.correctResults;
+    }
+
+    // ---- PREDICTIONS ----
+    // Solo el dueno; solo mientras el partido siga "upcoming" Y todavia no haya
+    // llegado su horario de inicio (scheduledAt en el futuro). No puede
+    // auto-asignarse puntos.
+    match /predictions/{predId} {
+      allow read: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+      allow create, update: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.predictedHomeGoals >= 0
+        && request.resource.data.predictedAwayGoals >= 0
+        && request.resource.data.pointsEarned == 0
+        && request.resource.data.evaluated == false
+        && matchData(request.resource.data.matchId).status == 'upcoming'
+        && matchData(request.resource.data.matchId).scheduledAt > request.time;
+    }
+
+    // ---- MATCHES ----
+    // Lectura para todos. Escritura solo desde el servidor (seed/Admin SDK).
+    match /matches/{matchId} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

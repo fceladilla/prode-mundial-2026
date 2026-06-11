@@ -1,0 +1,74 @@
+[
+  {
+    "matchNumber": 1,
+    "stage": "Grupo A",
+    "homeTeam": { "name": "Mexico", "code": "MEX" },
+    "awayTeam": { "name": "Por definir", "code": "A2" },
+    "venue": { "name": "Estadio Azteca", "city": "Ciudad de Mexico", "country": "Mexico" },
+    "utc": "2026-06-12T02:00:00Z",
+    "status": "upcoming"
+  },
+  {
+    "matchNumber": 2,
+    "stage": "Grupo A",
+    "homeTeam": { "name": "Por definir", "code": "A3" },
+    "awayTeam": { "name": "Por definir", "code": "A4" },
+    "venue": { "name": "Estadio Akron", "city": "Guadalajara", "country": "Mexico" },
+    "utc": "2026-06-12T22:00:00Z",
+    "status": "upcoming"
+  },
+  {
+    "matchNumber": 3,
+    "stage": "Grupo B",
+    "homeTeam": { "name": "Canada", "code": "CAN" },
+    "awayTeam": { "name": "Por definir", "code": "B2" },
+    "venue": { "name": "BMO Field", "city": "Toronto", "country": "Canada" },
+    "utc": "2026-06-12T23:00:00Z",
+    "status": "upcoming"
+  },
+  {
+    "matchNumber": 4,
+    "stage": "Grupo D",
+    "homeTeam": { "name": "Estados Unidos", "code": "USA" },
+    "awayTeam": { "name": "Por definir", "code": "D2" },
+    "venue": { "name": "SoFi Stadium", "city": "Inglewood", "country": "Estados Unidos" },
+    "utc": "2026-06-13T00:00:00Z",
+    "status": "upcoming"
+  },
+  {
+    "matchNumber": 5,
+    "stage": "Grupo C",
+    "homeTeam": { "name": "Argentina", "code": "ARG" },
+    "awayTeam": { "name": "Por definir", "code": "C2" },
+    "venue": { "name": "MetLife Stadium", "city": "East Rutherford", "country": "Estados Unidos" },
+    "utc": "2026-06-13T19:00:00Z",
+    "status": "upcoming"
+  },
+  {
+    "matchNumber": 6,
+    "stage": "Grupo E",
+    "homeTeam": { "name": "Brasil", "code": "BRA" },
+    "awayTeam": { "name": "Por definir", "code": "E2" },
+    "venue": { "name": "Mercedes-Benz Stadium", "city": "Atlanta", "country": "Estados Unidos" },
+    "utc": "2026-06-13T22:00:00Z",
+    "status": "upcoming"
+  },
+  {
+    "matchNumber": 7,
+    "stage": "Grupo F",
+    "homeTeam": { "name": "Por definir", "code": "F1" },
+    "awayTeam": { "name": "Por definir", "code": "F2" },
+    "venue": { "name": "AT&T Stadium", "city": "Arlington", "country": "Estados Unidos" },
+    "utc": "2026-06-14T00:00:00Z",
+    "status": "upcoming"
+  },
+  {
+    "matchNumber": 8,
+    "stage": "Grupo B",
+    "homeTeam": { "name": "Por definir", "code": "B3" },
+    "awayTeam": { "name": "Por definir", "code": "B4" },
+    "venue": { "name": "Estadio BBVA", "city": "Monterrey", "country": "Mexico" },
+    "utc": "2026-06-14T19:00:00Z",
+    "status": "upcoming"
+  }
+]
