@@ -6,6 +6,7 @@ import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { getDbClient } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { Flag } from './Flag';
+import { formatLocalKickoff } from '@/lib/time';
 import type { Match, Prediction } from '@/lib/types';
 
 type DisplayStatus = 'upcoming' | 'closed' | 'live' | 'finished';
@@ -51,6 +52,14 @@ export function MatchCard({
   // Bloqueo: el pronostico se cierra cuando el partido empieza (por hora) o
   // cuando ya no esta "upcoming" (resultado cargado).
   const kickoffMs = match.scheduledAt?.toMillis?.() ?? 0;
+
+  // Hora en la zona local del usuario. Arranca con la hora ARG precomputada
+  // (igual en server y en el primer render del cliente) y, tras montar,
+  // pasamos a la hora local del navegador para no romper la hidratacion.
+  const [kickoffLabel, setKickoffLabel] = useState(match.scheduledAtARG);
+  useEffect(() => {
+    if (kickoffMs > 0) setKickoffLabel(formatLocalKickoff(kickoffMs));
+  }, [kickoffMs]);
   const started = kickoffMs > 0 && Date.now() >= kickoffMs;
   const locked = match.status !== 'upcoming' || started;
   const canPredict = !!user && !locked;
@@ -101,8 +110,8 @@ export function MatchCard({
       className="rounded-xl border border-white/10 bg-carbon p-4"
     >
       <div className="mb-3 flex items-center justify-between text-xs text-suave">
-        <span>
-          {match.scheduledAtARG} &middot; {match.venue.city}
+        <span title={`ARG ${match.scheduledAtARG} · ESP ${match.scheduledAtESP}`}>
+          {kickoffLabel} &middot; {match.venue.city}
         </span>
         <span className={`rounded px-2 py-0.5 text-[10px] font-bold ${st.className}`}>
           {st.text}

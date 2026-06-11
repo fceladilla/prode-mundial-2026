@@ -1,0 +1,23 @@
+/**
+ * Formatea un kickoff (en ms UTC) a la hora LOCAL del navegador que lo mira,
+ * con el mismo estilo que las horas precomputadas: "16:00 (11 jun)".
+ *
+ * Al no pasar `timeZone`, Intl usa la zona horaria del runtime: en el cliente,
+ * la del navegador del usuario. Debe llamarse despues del montaje (en un
+ * effect) para no provocar un mismatch de hidratacion con el render del server.
+ */
+export function formatLocalKickoff(ms: number): string {
+  const date = new Date(ms);
+  const time = new Intl.DateTimeFormat('es-AR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date);
+  const day = new Intl.DateTimeFormat('es-AR', {
+    day: 'numeric',
+    month: 'short',
+  })
+    .format(date)
+    .replace('.', '');
+  return `${time} (${day})`;
+}

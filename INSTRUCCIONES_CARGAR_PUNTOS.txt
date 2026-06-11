@@ -1,0 +1,93 @@
+========================================================================
+  PRODE MUNDIAL 2026 — Como cargar el resultado de un partido
+========================================================================
+
+Cargar un resultado hace TRES cosas automaticamente:
+  1. Marca el partido como "finished" (FINALIZADO) en la app.
+  2. Evalua el pronostico de cada jugador y le asigna los puntos.
+  3. Actualiza el ranking en tiempo real.
+
+No hace falta tocar Firebase a mano ni nada online: se corre un comando
+desde la carpeta del proyecto en tu compu.
+
+
+------------------------------------------------------------------------
+  REQUISITOS (una sola vez)
+------------------------------------------------------------------------
+
+- Tener el proyecto en la compu y haber corrido "npm install".
+- Tener el archivo scripts/serviceAccountKey.json (la clave de Firebase
+  Admin). NO se sube a GitHub; es secreto. Si lo perdes, se baja de:
+  Firebase Console -> Configuracion del proyecto -> Cuentas de servicio
+  -> "Generar nueva clave privada", y se guarda como
+  scripts/serviceAccountKey.json
+
+
+------------------------------------------------------------------------
+  EL COMANDO
+------------------------------------------------------------------------
+
+Abri una terminal en la carpeta del proyecto y escribi:
+
+    npm run set-result -- <idDelPartido> <golesLocal> <golesVisitante>
+
+Ejemplo (Mexico 2 - 1 Sudafrica, partido M001):
+
+    npm run set-result -- M001 2 1
+
+  - <idDelPartido>     el ID del partido (ver abajo como encontrarlo)
+  - <golesLocal>       goles del equipo LOCAL (el de arriba en la tarjeta)
+  - <golesVisitante>   goles del equipo VISITANTE (el de abajo)
+
+OJO con el "--" despues de set-result: es necesario, no lo saques.
+Los goles deben ser numeros enteros mayores o iguales a 0.
+
+
+------------------------------------------------------------------------
+  COMO SABER EL ID DEL PARTIDO
+------------------------------------------------------------------------
+
+Los IDs del fixture oficial son M001, M002, M003, ... en el orden del
+calendario (M001 = partido inaugural). Estan en el archivo
+scripts/fixture_mundial2026.json: buscas por nombre de equipo y al lado
+ves su "id".
+
+
+------------------------------------------------------------------------
+  COMO SE REPARTEN LOS PUNTOS
+------------------------------------------------------------------------
+
+  - Marcador EXACTO (ej. pronostico 2-1 y salio 2-1) ...... 5 puntos
+  - Acertar solo el resultado (gano/empato/perdio) ........ 2 puntos
+  - No acertar ............................................ 0 puntos
+
+El exacto NO se suma con el de resultado: es 5 O 2, maximo 5 por partido.
+
+
+------------------------------------------------------------------------
+  COSAS UTILES
+------------------------------------------------------------------------
+
+- Es SEGURO correrlo dos veces: no duplica puntos. Si un pronostico ya
+  fue evaluado, lo omite (te avisa cuantos omitio).
+
+- Me equivoque en el resultado y ya lo cargue: avisame y lo corregimos
+  (hay que revertir los puntos de ese partido y volver a cargarlo; no
+  alcanza con re-ejecutar el comando porque ya quedaron evaluados).
+
+- El ranking se actualiza solo en la web; no hay que redesplegar nada.
+
+- Reiniciar TODO el juego (borra pronosticos y pone a todos en 0):
+      npm run reset-scores
+  Esto es DESTRUCTIVO. Usar solo para arrancar limpio.
+
+
+------------------------------------------------------------------------
+  RESUMEN RAPIDO
+------------------------------------------------------------------------
+
+  npm run set-result -- M001 2 1
+
+  (idPartido  golesLocal  golesVisitante)  ->  listo, ranking actualizado.
+
+========================================================================
