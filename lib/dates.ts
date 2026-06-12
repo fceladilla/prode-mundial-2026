@@ -10,9 +10,12 @@ export function argDateKey(d: Date): string {
   }).format(d);
 }
 
-/** Etiqueta legible del dia en hora argentina, ej. "Jueves 11 de junio". */
-export function argDateLabel(d: Date): string {
-  const l = new Intl.DateTimeFormat('es-AR', {
+/**
+ * Etiqueta legible del dia en hora argentina, ej. "Jueves 11 de junio".
+ * Acepta un locale opcional para mostrarla en el idioma elegido.
+ */
+export function argDateLabel(d: Date, locale = 'es-AR'): string {
+  const l = new Intl.DateTimeFormat(locale, {
     timeZone: TZ,
     weekday: 'long',
     day: 'numeric',

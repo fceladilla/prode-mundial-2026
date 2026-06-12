@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { getDbClient } from '@/lib/firebase';
+import { useLanguage } from '@/hooks/useLanguage';
+import { LOCALE } from '@/lib/i18n';
 import { formatDisplayName } from '@/lib/formatName';
 import { argDateKey, argDateLabel } from '@/lib/dates';
 import type { Match, Team } from '@/lib/types';
@@ -47,8 +49,9 @@ function dateForms(key: string, label: string): string[] {
   const forms = [normalize(label), `${d}/${m}`, `${d}/${month}`, key];
   const todayKey = argDateKey(new Date());
   const tomorrowKey = argDateKey(new Date(Date.now() + 24 * 60 * 60 * 1000));
-  if (key === todayKey) forms.push('hoy');
-  if (key === tomorrowKey) forms.push('manana');
+  // Palabras de hoy/manana en los tres idiomas de la app (es, ca, en).
+  if (key === todayKey) forms.push('hoy', 'avui', 'today');
+  if (key === tomorrowKey) forms.push('manana', 'dema', 'tomorrow');
   return forms;
 }
 
@@ -70,6 +73,8 @@ function scrollToMatch(matchId: string) {
 
 export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
   const router = useRouter();
+  const { lang, t } = useLanguage();
+  const locale = LOCALE[lang];
   const [term, setTerm] = useState('');
   const [results, setResults] = useState<Result[]>([]);
   const [open, setOpen] = useState(false);
@@ -124,7 +129,7 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
         const key = argDateKey(d);
         const e = dayMap.get(key);
         if (e) e.count++;
-        else dayMap.set(key, { key, label: argDateLabel(d), count: 1 });
+        else dayMap.set(key, { key, label: argDateLabel(d, locale), count: 1 });
       }
       const dateHits: Result[] = Array.from(dayMap.values())
         .filter((day) => dateForms(day.key, day.label).some((f) => f.includes(nt)))
@@ -169,7 +174,7 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
     }, 300);
 
     return () => clearTimeout(handle);
-  }, [term]);
+  }, [term, locale]);
 
   // Click afuera cierra el dropdown.
   useEffect(() => {
@@ -219,10 +224,10 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
   // Grupos en el orden en que estan en `results`, para que el indice
   // activo del teclado coincida con el orden visual.
   const groups: { title: string; items: { result: Result; idx: number }[] }[] = [
-    { title: 'Equipos', items: [] },
-    { title: 'Fechas', items: [] },
-    { title: 'Partidos', items: [] },
-    { title: 'Jugadores', items: [] },
+    { title: t('searchTeams'), items: [] },
+    { title: t('searchDates'), items: [] },
+    { title: t('searchMatches'), items: [] },
+    { title: t('searchPlayers'), items: [] },
   ];
   results.forEach((result, idx) => {
     const gi =
@@ -243,15 +248,15 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
         onKeyDown={onKeyDown}
         onFocus={() => results.length > 0 && setOpen(true)}
         autoFocus={autoFocus}
-        placeholder="Buscar pais, fecha o jugador..."
-        aria-label="Buscar pais, fecha o jugador"
+        placeholder={t('searchPlaceholder')}
+        aria-label={t('searchPlaceholder')}
         className="h-9 w-full rounded-md bg-carbon px-3 text-sm outline-none ring-1 ring-white/15 placeholder:text-suave focus:ring-2 focus:ring-oro"
       />
 
       {open && (
         <div className="absolute left-0 right-0 top-11 z-30 max-h-80 overflow-y-auto rounded-md border border-white/10 bg-negro shadow-xl">
           {results.length === 0 ? (
-            <p className="px-3 py-2 text-sm text-suave">Sin resultados.</p>
+            <p className="px-3 py-2 text-sm text-suave">{t('noResults')}</p>
           ) : (
             groups.map((g) =>
               g.items.length === 0 ? null : (
@@ -278,7 +283,7 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
                             {r.team.name}
                           </span>
                           <span className="shrink-0 text-xs text-suave">
-                            {r.count} {r.count === 1 ? 'partido' : 'partidos'}
+                            {r.count} {r.count === 1 ? t('match') : t('matches')}
                           </span>
                         </>
                       ) : r.kind === 'date' ? (
@@ -289,7 +294,7 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
                           </span>
                           <span className="shrink-0 text-xs text-suave">
                             {r.date.count}{' '}
-                            {r.date.count === 1 ? 'partido' : 'partidos'}
+                            {r.date.count === 1 ? t('match') : t('matches')}
                           </span>
                         </>
                       ) : r.kind === 'match' ? (

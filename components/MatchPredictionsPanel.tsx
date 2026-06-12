@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useMatchPredictions } from '@/hooks/useMatchPredictions';
+import { useLanguage } from '@/hooks/useLanguage';
 import { formatDisplayName } from '@/lib/formatName';
 import type { MatchStatus } from '@/lib/types';
 import { Avatar } from './Avatar';
@@ -36,6 +37,7 @@ export function MatchPredictionsPanel({
   matchStatus: MatchStatus;
 }) {
   const { predictions, loading } = useMatchPredictions(matchId, matchStatus);
+  const { t } = useLanguage();
 
   if (matchStatus === 'upcoming') return null;
 
@@ -46,13 +48,13 @@ export function MatchPredictionsPanel({
       className="mt-3 rounded-lg bg-negro p-3"
     >
       <h3 className="mb-2 font-display text-sm font-bold text-oro">
-        📊 Predicciones ({predictions.length}{' '}
-        {predictions.length === 1 ? 'jugador' : 'jugadores'})
+        {t('predictionsTitle')} ({predictions.length}{' '}
+        {predictions.length === 1 ? t('player') : t('players')})
       </h3>
       {loading ? (
-        <p className="text-xs text-suave">Cargando...</p>
+        <p className="text-xs text-suave">{t('loading')}</p>
       ) : predictions.length === 0 ? (
-        <p className="text-xs text-suave">Nadie pronostico este partido.</p>
+        <p className="text-xs text-suave">{t('nobodyPredicted')}</p>
       ) : (
         <ul className="space-y-1">
           {predictions.map((p) => (

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/hooks/useLanguage';
 import { postComment, useComments } from '@/hooks/useComments';
 import { formatDisplayName } from '@/lib/formatName';
 import { formatRelativeTime } from '@/lib/formatRelativeTime';
@@ -13,6 +14,7 @@ const MAX_CHARS = 500;
 
 export function CommentSection({ matchId = null }: { matchId?: string | null }) {
   const { user } = useAuth();
+  const { lang, t } = useLanguage();
   const { comments, loading } = useComments(matchId);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
@@ -35,7 +37,7 @@ export function CommentSection({ matchId = null }: { matchId?: string | null }) 
       );
       setText('');
     } catch {
-      setError('No se pudo publicar el comentario. Proba de nuevo.');
+      setError(t('commentError'));
     } finally {
       setSending(false);
     }
@@ -44,7 +46,7 @@ export function CommentSection({ matchId = null }: { matchId?: string | null }) 
   return (
     <section className="rounded-xl border border-white/10 bg-negro p-4">
       <h2 className="mb-3 font-display text-lg font-bold text-oro">
-        💬 {matchId ? 'Comentarios del partido' : 'Foro'}
+        💬 {matchId ? t('matchComments') : t('forumTitle')}
       </h2>
 
       {user ? (
@@ -61,7 +63,7 @@ export function CommentSection({ matchId = null }: { matchId?: string | null }) 
                 }
               }}
               rows={2}
-              placeholder="Escribi tu comentario..."
+              placeholder={t('commentPlaceholder')}
               className="w-full resize-none rounded-md bg-carbon px-3 py-2 font-noto text-sm outline-none ring-1 ring-white/15 placeholder:text-suave focus:ring-2 focus:ring-oro"
             />
             <div className="mt-1 flex items-center justify-between text-xs">
@@ -76,22 +78,20 @@ export function CommentSection({ matchId = null }: { matchId?: string | null }) 
             disabled={!canSend}
             className="rounded-md bg-oro px-4 py-2 text-sm font-semibold text-negro transition hover:bg-oro/90 disabled:opacity-40"
           >
-            {sending ? '...' : 'Enviar'}
+            {sending ? '...' : t('send')}
           </button>
         </div>
       ) : (
         <p className="mb-3 rounded-md bg-carbon px-3 py-2 text-sm text-suave">
-          Inicia sesion para comentar.
+          {t('signInToComment')}
         </p>
       )}
 
       <div className="divide-y divide-white/10">
         {loading ? (
-          <p className="py-3 text-sm text-suave">Cargando comentarios...</p>
+          <p className="py-3 text-sm text-suave">{t('loadingComments')}</p>
         ) : comments.length === 0 ? (
-          <p className="py-3 text-sm text-suave">
-            Todavia no hay comentarios. ¡Se el primero!
-          </p>
+          <p className="py-3 text-sm text-suave">{t('noComments')}</p>
         ) : (
           <AnimatePresence initial={false}>
             {comments.map((c) => (
@@ -113,7 +113,7 @@ export function CommentSection({ matchId = null }: { matchId?: string | null }) 
                       {formatDisplayName(c.displayName)}
                     </Link>
                     <span className="shrink-0 text-xs text-suave">
-                      {formatRelativeTime(c.createdAt)}
+                      {formatRelativeTime(c.createdAt, lang)}
                     </span>
                   </div>
                   <p className="break-words font-noto text-sm text-white/90">

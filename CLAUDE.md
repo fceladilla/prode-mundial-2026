@@ -54,6 +54,10 @@ Planned but **not yet built** (see SOP §8): `partido/[id]/page.tsx` (match deta
 
 Components live flat under `components/` (`Navbar`, `Sidebar`, `MatchCard`, `LeaderboardTable`, `Avatar`, `SearchBar`, `CommentSection`, `MatchPredictionsPanel`), not in the nested subfolders the SOP proposes. `SearchBar` (in the Navbar) filters matches client-side and prefix-searches users via the `displayNameLower` field (written/backfilled on sign-in in `hooks/useAuth.tsx`).
 
+### Internationalization (i18n)
+
+The UI supports **Spanish (default), Catalan and English**. All user-facing strings live in `lib/i18n.ts` (one flat dictionary per language, typed by `TranslationKey`). Components read them via the `useLanguage()` hook (`hooks/useLanguage.tsx` — `LanguageProvider` wraps the app in `app/providers.tsx`): `t(key, vars?)` for strings, `tStage(stage)` to translate Firestore stage names (stored in Spanish: "Grupo A", "Octavos de Final", ...), and `lang` for locale-aware helpers (`argDateLabel(date, LOCALE[lang])`, `formatRelativeTime(date, lang)`). The choice persists in `localStorage` (`prode-lang`); the switcher (ES/CA/EN) is in the Navbar. First render is always Spanish to match the server HTML — the saved language is applied in an effect after mount (don't read localStorage during render). When adding UI text, add the key to all three dictionaries — TypeScript errors on any missing key.
+
 ### Firebase initialization (important)
 
 `lib/firebase.ts` does **not** export ready `auth`/`db` instances. It exports lazy getters `getAuthClient()` and `getDbClient()` plus `googleProvider`. Always call these getters from inside an effect or event handler (client-side) — never at module top level. This is deliberate: eager `getAuth()` at import time throws `auth/invalid-api-key` during `next build`'s static prerender (pages have no env vars then). Auth context/hook lives in `hooks/useAuth.tsx`.

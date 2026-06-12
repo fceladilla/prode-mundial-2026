@@ -11,12 +11,14 @@ import {
 import Link from 'next/link';
 import { getDbClient } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/hooks/useLanguage';
 import { formatDisplayName } from '@/lib/formatName';
 import type { LeaderboardUser } from '@/lib/types';
 import { Avatar } from './Avatar';
 
 export function LeaderboardTable({ limitRows = 50 }: { limitRows?: number }) {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [rows, setRows] = useState<LeaderboardUser[]>([]);
 
   useEffect(() => {
@@ -36,7 +38,7 @@ export function LeaderboardTable({ limitRows = 50 }: { limitRows?: number }) {
   }, [limitRows]);
 
   if (rows.length === 0) {
-    return <p className="text-sm text-suave">Todavia no hay jugadores.</p>;
+    return <p className="text-sm text-suave">{t('noPlayersYet')}</p>;
   }
 
   return (

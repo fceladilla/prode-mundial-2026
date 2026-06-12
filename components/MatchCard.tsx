@@ -5,6 +5,8 @@ import { motion } from 'framer-motion';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { getDbClient } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/hooks/useLanguage';
+import type { TranslationKey } from '@/lib/i18n';
 import { Flag } from './Flag';
 import { CommentSection } from './CommentSection';
 import { MatchPredictionsPanel } from './MatchPredictionsPanel';
@@ -13,11 +15,11 @@ import type { Match, Prediction } from '@/lib/types';
 
 type DisplayStatus = 'upcoming' | 'closed' | 'live' | 'finished';
 
-const STATUS: Record<DisplayStatus, { text: string; className: string }> = {
-  upcoming: { text: 'PROXIMO', className: 'bg-acero text-white' },
-  closed: { text: 'CERRADO', className: 'bg-suave/30 text-suave' },
-  live: { text: 'EN VIVO', className: 'bg-rojo text-white animate-pulse' },
-  finished: { text: 'FINALIZADO', className: 'bg-estadio text-white' },
+const STATUS: Record<DisplayStatus, { textKey: TranslationKey; className: string }> = {
+  upcoming: { textKey: 'statusUpcoming', className: 'bg-acero text-white' },
+  closed: { textKey: 'statusClosed', className: 'bg-suave/30 text-suave' },
+  live: { textKey: 'statusLive', className: 'bg-rojo text-white animate-pulse' },
+  finished: { textKey: 'statusFinished', className: 'bg-estadio text-white' },
 };
 
 function TeamRow({ team }: { team: Match['homeTeam'] }) {
@@ -39,6 +41,7 @@ export function MatchCard({
   index?: number;
 }) {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [home, setHome] = useState('');
   const [away, setAway] = useState('');
   const [saving, setSaving] = useState(false);
@@ -121,7 +124,7 @@ export function MatchCard({
           {kickoffLabel} &middot; {match.venue.city}
         </span>
         <span className={`rounded px-2 py-0.5 text-[10px] font-bold ${st.className}`}>
-          {st.text}
+          {t(st.textKey)}
         </span>
       </div>
 
@@ -143,7 +146,7 @@ export function MatchCard({
               value={home}
               onChange={(e) => setHome(e.target.value.replace(/\D/g, ''))}
               maxLength={2}
-              aria-label={`Goles ${match.homeTeam.name}`}
+              aria-label={t('goalsOf', { name: match.homeTeam.name })}
               className="h-9 w-12 rounded bg-negro text-center font-display text-lg outline-none ring-1 ring-white/15 focus:ring-2 focus:ring-oro"
             />
             <input
@@ -151,14 +154,14 @@ export function MatchCard({
               value={away}
               onChange={(e) => setAway(e.target.value.replace(/\D/g, ''))}
               maxLength={2}
-              aria-label={`Goles ${match.awayTeam.name}`}
+              aria-label={t('goalsOf', { name: match.awayTeam.name })}
               className="h-9 w-12 rounded bg-negro text-center font-display text-lg outline-none ring-1 ring-white/15 focus:ring-2 focus:ring-oro"
             />
           </div>
         ) : (
           <div className="text-right font-display text-sm text-suave">
             {prediction
-              ? `Tu pronostico: ${prediction.predictedHomeGoals}-${prediction.predictedAwayGoals}`
+              ? `${t('yourPrediction')}: ${prediction.predictedHomeGoals}-${prediction.predictedAwayGoals}`
               : started
                 ? '🔒'
                 : '—'}
@@ -170,7 +173,7 @@ export function MatchCard({
         <div className="mt-3 flex items-center justify-end gap-3">
           {prediction && (
             <span className="text-xs text-suave">
-              Guardado: {prediction.predictedHomeGoals}-
+              {t('savedPrediction')}: {prediction.predictedHomeGoals}-
               {prediction.predictedAwayGoals}
             </span>
           )}
@@ -179,7 +182,7 @@ export function MatchCard({
             disabled={saving || home === '' || away === ''}
             className="rounded-md bg-oro px-4 py-1.5 text-sm font-semibold text-negro transition hover:bg-oro/90 disabled:opacity-40"
           >
-            {saved ? '✓ Guardado' : saving ? 'Guardando...' : 'Guardar'}
+            {saved ? t('savedOk') : saving ? t('saving') : t('save')}
           </button>
         </div>
       )}
@@ -187,7 +190,7 @@ export function MatchCard({
       {match.status === 'finished' && prediction?.evaluated && (
         <div className="mt-3 border-t border-white/10 pt-2 text-right text-sm">
           <span className="text-suave">
-            Tu pronostico {prediction.predictedHomeGoals}-
+            {t('yourPrediction')} {prediction.predictedHomeGoals}-
             {prediction.predictedAwayGoals} &middot;{' '}
           </span>
           <span className="font-display font-bold text-oro">
@@ -198,7 +201,7 @@ export function MatchCard({
 
       {!user && !locked && (
         <p className="mt-3 text-right text-xs text-suave">
-          Ingresa para pronosticar
+          {t('signInToPredict')}
         </p>
       )}
 
@@ -210,14 +213,14 @@ export function MatchCard({
             onClick={() => setShowPredictions((v) => !v)}
             className="hover:text-white"
           >
-            📊 Predicciones {showPredictions ? '▴' : '▾'}
+            {t('predictionsToggle')} {showPredictions ? '▴' : '▾'}
           </button>
         )}
         <button
           onClick={() => setShowComments((v) => !v)}
           className="hover:text-white"
         >
-          💬 Comentarios {showComments ? '▴' : '▾'}
+          {t('commentsToggle')} {showComments ? '▴' : '▾'}
         </button>
       </div>
 

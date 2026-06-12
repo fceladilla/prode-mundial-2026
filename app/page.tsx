@@ -11,6 +11,8 @@ import {
 } from 'firebase/firestore';
 import { getDbClient } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/hooks/useLanguage';
+import { LOCALE } from '@/lib/i18n';
 import { argDateKey, argDateLabel } from '@/lib/dates';
 import type { Match, Prediction } from '@/lib/types';
 import { MatchCard } from '@/components/MatchCard';
@@ -37,6 +39,8 @@ function passesFilter(m: Match, view: string): boolean {
 
 function FixtureContent() {
   const { user } = useAuth();
+  const { lang, t, tStage } = useLanguage();
+  const locale = LOCALE[lang];
   const router = useRouter();
   const searchParams = useSearchParams();
   const equipo = searchParams.get('equipo'); // codigo FIFA, ej. "ARG"
@@ -95,14 +99,16 @@ function FixtureContent() {
           ? m.homeTeam.name
           : m.awayTeam.name
         : equipo;
-      return `Partidos de ${name}`;
+      return t('matchesOfTeam', { name });
     }
     if (fecha) {
       const m = matches.find((x) => argDateKey(x.scheduledAt.toDate()) === fecha);
-      return m ? argDateLabel(m.scheduledAt.toDate()) : `Partidos del ${fecha}`;
+      return m
+        ? argDateLabel(m.scheduledAt.toDate(), locale)
+        : t('matchesOfDate', { date: fecha });
     }
     return null;
-  }, [equipo, fecha, matches]);
+  }, [equipo, fecha, matches, t, locale]);
 
   // Filtrar + agrupar segun la vista elegida (manteniendo el orden cronologico).
   const sections = useMemo(() => {
@@ -116,21 +122,21 @@ function FixtureContent() {
         continue;
       }
       const useDateLabel = equipo || fecha || view === 'todos';
-      const label = useDateLabel ? argDateLabel(m.scheduledAt.toDate()) : m.stage;
+      const label = useDateLabel
+        ? argDateLabel(m.scheduledAt.toDate(), locale)
+        : tStage(m.stage);
       const arr = map.get(label) ?? [];
       arr.push(m);
       map.set(label, arr);
     }
     return Array.from(map.entries());
-  }, [matches, view, equipo, fecha]);
+  }, [matches, view, equipo, fecha, locale, tStage]);
 
   return (
     <div>
-      <h1 className="mb-1 font-display text-3xl font-bold">Fixture Mundial 2026</h1>
+      <h1 className="mb-1 font-display text-3xl font-bold">{t('homeTitle')}</h1>
       <p className="mb-4 text-sm text-suave">
-        {user
-          ? 'Carga tu pronostico antes de que empiece cada partido.'
-          : 'Ingresa con Google para pronosticar y sumar puntos.'}
+        {user ? t('homeTaglineUser') : t('homeTaglineGuest')}
       </p>
 
       {!loading && matches.length > 0 && searchFilterLabel ? (
@@ -142,7 +148,7 @@ function FixtureContent() {
             onClick={() => router.push('/')}
             className="rounded-full bg-carbon px-3 py-1.5 text-sm font-semibold text-suave transition hover:text-white"
           >
-            ✕ Quitar filtro
+            {t('clearFilter')}
           </button>
         </div>
       ) : (
@@ -151,14 +157,13 @@ function FixtureContent() {
       )}
 
       {loading ? (
-        <p className="text-suave">Cargando partidos...</p>
+        <p className="text-suave">{t('loadingMatches')}</p>
       ) : matches.length === 0 ? (
         <div className="rounded-xl border border-white/10 bg-carbon p-6 text-suave">
-          Todavia no hay partidos cargados. Ejecuta{' '}
-          <code className="text-oro">npm run seed</code>.
+          {t('noMatchesSeeded')} <code className="text-oro">npm run seed</code>.
         </div>
       ) : sections.length === 0 ? (
-        <p className="text-suave">No hay partidos en esta vista.</p>
+        <p className="text-suave">{t('noMatchesInView')}</p>
       ) : (
         <div className="space-y-8">
           {sections.map(([label, list], gi) => (
@@ -185,9 +190,10 @@ function FixtureContent() {
 }
 
 export default function FixturePage() {
+  const { t } = useLanguage();
   // useSearchParams exige un Suspense boundary para el prerender estatico.
   return (
-    <Suspense fallback={<p className="text-suave">Cargando partidos...</p>}>
+    <Suspense fallback={<p className="text-suave">{t('loadingMatches')}</p>}>
       <FixtureContent />
     </Suspense>
   );

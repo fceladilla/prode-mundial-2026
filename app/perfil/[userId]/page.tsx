@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import { getDbClient } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/hooks/useLanguage';
 import { formatDisplayName } from '@/lib/formatName';
 import type { LeaderboardUser, Match, Prediction } from '@/lib/types';
 import { Avatar } from '@/components/Avatar';
@@ -24,7 +25,8 @@ interface RevealedPrediction {
 }
 
 function PointsBadge({ p }: { p: Prediction }) {
-  if (!p.evaluated) return <span className="text-suave">pendiente</span>;
+  const { t } = useLanguage();
+  if (!p.evaluated) return <span className="text-suave">{t('pending')}</span>;
   if (p.pointsEarned === 5)
     return <span className="font-display font-bold text-oro">🎯 5 pts</span>;
   if (p.pointsEarned === 2)
@@ -38,6 +40,7 @@ export default function PerfilPage({
   params: { userId: string };
 }) {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [profile, setProfile] = useState<LeaderboardUser | null>(null);
   const [revealed, setRevealed] = useState<RevealedPrediction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,13 +106,13 @@ export default function PerfilPage({
   }, [params.userId]);
 
   if (loading) {
-    return <p className="text-suave">Cargando perfil...</p>;
+    return <p className="text-suave">{t('loadingProfile')}</p>;
   }
 
   if (notFound || !profile) {
     return (
       <div className="rounded-xl border border-white/10 bg-carbon p-6 text-suave">
-        No encontramos este jugador.
+        {t('playerNotFound')}
       </div>
     );
   }
@@ -124,7 +127,7 @@ export default function PerfilPage({
     >
       {isMe && (
         <div className="rounded-md bg-oro/15 px-4 py-2 text-sm text-oro ring-1 ring-oro/40">
-          Este es tu perfil
+          {t('thisIsYourProfile')}
         </div>
       )}
 
@@ -139,10 +142,10 @@ export default function PerfilPage({
               🏆 {profile.totalPoints ?? 0} pts
             </span>
             <span className="text-suave">
-              🎯 {profile.exactResults ?? 0} exactos
+              🎯 {profile.exactResults ?? 0} {t('exactCount')}
             </span>
             <span className="text-suave">
-              ✓ {profile.correctResults ?? 0} aciertos
+              ✓ {profile.correctResults ?? 0} {t('correctCount')}
             </span>
           </div>
         </div>
@@ -150,13 +153,10 @@ export default function PerfilPage({
 
       <section>
         <h2 className="mb-3 font-display text-xl font-bold text-oro">
-          Predicciones reveladas
+          {t('revealedPredictions')}
         </h2>
         {revealed.length === 0 ? (
-          <p className="text-sm text-suave">
-            Todavia no hay predicciones reveladas: se muestran recien cuando el
-            partido pronosticado comienza.
-          </p>
+          <p className="text-sm text-suave">{t('noRevealedPredictions')}</p>
         ) : (
           <ul className="space-y-2">
             {revealed.map(({ match, prediction }) => (

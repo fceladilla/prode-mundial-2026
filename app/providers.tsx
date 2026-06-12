@@ -2,7 +2,12 @@
 
 import type { ReactNode } from 'react';
 import { AuthProvider } from '@/hooks/useAuth';
+import { LanguageProvider } from '@/hooks/useLanguage';
 
 export function Providers({ children }: { children: ReactNode }) {
-  return <AuthProvider>{children}</AuthProvider>;
+  return (
+    <LanguageProvider>
+      <AuthProvider>{children}</AuthProvider>
+    </LanguageProvider>
+  );
 }

@@ -1,18 +1,21 @@
 'use client';
 
+import { useLanguage } from '@/hooks/useLanguage';
+import type { TranslationKey } from '@/lib/i18n';
+
 export interface FilterOption {
   id: string;
-  label: string;
+  labelKey: TranslationKey;
 }
 
 export const FIXTURE_FILTERS: FilterOption[] = [
-  { id: 'todos', label: 'Todos' },
-  { id: 'grupos', label: 'Grupos' },
-  { id: 'r32', label: '16avos' },
-  { id: 'octavos', label: '8avos' },
-  { id: 'cuartos', label: 'Cuartos' },
-  { id: 'semis', label: 'Semis' },
-  { id: 'final', label: 'Final' },
+  { id: 'todos', labelKey: 'filterAll' },
+  { id: 'grupos', labelKey: 'filterGroups' },
+  { id: 'r32', labelKey: 'filterR32' },
+  { id: 'octavos', labelKey: 'filterR16' },
+  { id: 'cuartos', labelKey: 'filterQF' },
+  { id: 'semis', labelKey: 'filterSF' },
+  { id: 'final', labelKey: 'filterFinal' },
 ];
 
 export function FixtureFilters({
@@ -22,6 +25,7 @@ export function FixtureFilters({
   value: string;
   onChange: (id: string) => void;
 }) {
+  const { t } = useLanguage();
   return (
     <div className="-mx-4 mb-6 flex gap-2 overflow-x-auto px-4 pb-1">
       {FIXTURE_FILTERS.map((f) => (
@@ -34,7 +38,7 @@ export function FixtureFilters({
               : 'bg-carbon text-suave hover:text-white'
           }`}
         >
-          {f.label}
+          {t(f.labelKey)}
         </button>
       ))}
     </div>

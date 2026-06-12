@@ -3,11 +3,39 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/hooks/useLanguage';
+import { LANGS } from '@/lib/i18n';
 import { Avatar } from './Avatar';
 import { SearchBar } from './SearchBar';
 
+function LangSwitcher({ onSelect }: { onSelect?: () => void }) {
+  const { lang, setLang } = useLanguage();
+  return (
+    <div className="flex items-center gap-0.5 rounded-md bg-carbon p-0.5 text-xs font-semibold">
+      {LANGS.map((l) => (
+        <button
+          key={l.id}
+          onClick={() => {
+            setLang(l.id);
+            onSelect?.();
+          }}
+          aria-pressed={lang === l.id}
+          className={`rounded px-2 py-1 transition ${
+            lang === l.id
+              ? 'bg-oro text-negro'
+              : 'text-suave hover:text-white'
+          }`}
+        >
+          {l.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function Navbar() {
   const { user, loading, signIn, logout } = useAuth();
+  const { t } = useLanguage();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -26,13 +54,13 @@ export function Navbar() {
           </Link>
           <div className="hidden gap-4 text-sm text-suave sm:flex">
             <Link href="/" className="hover:text-white">
-              Fixture
+              {t('navFixture')}
             </Link>
             <Link href="/ranking" className="hover:text-white">
-              Ranking
+              {t('navRanking')}
             </Link>
             <Link href="/foro" className="hover:text-white">
-              Foro
+              {t('navForum')}
             </Link>
           </div>
         </div>
@@ -44,6 +72,7 @@ export function Navbar() {
 
         {/* Acciones de usuario en desktop */}
         <div className="hidden shrink-0 items-center gap-3 sm:flex">
+          <LangSwitcher />
           {loading ? null : user ? (
             <>
               <Link
@@ -57,7 +86,7 @@ export function Navbar() {
                 onClick={() => logout()}
                 className="text-sm text-suave hover:text-white"
               >
-                Salir
+                {t('signOut')}
               </button>
             </>
           ) : (
@@ -65,7 +94,7 @@ export function Navbar() {
               onClick={() => signIn()}
               className="rounded-md bg-oro px-4 py-2 text-sm font-semibold text-negro transition hover:bg-oro/90"
             >
-              Ingresar con Google
+              {t('signIn')}
             </button>
           )}
         </div>
@@ -78,7 +107,7 @@ export function Navbar() {
               setMenuOpen(false);
             }}
             className="flex h-9 w-9 items-center justify-center rounded-md text-white hover:bg-white/10"
-            aria-label={searchOpen ? 'Cerrar busqueda' : 'Abrir busqueda'}
+            aria-label={searchOpen ? t('closeSearch') : t('openSearch')}
             aria-expanded={searchOpen}
           >
             <svg
@@ -100,7 +129,7 @@ export function Navbar() {
               setSearchOpen(false);
             }}
             className="flex h-9 w-9 items-center justify-center rounded-md text-white hover:bg-white/10"
-            aria-label={menuOpen ? 'Cerrar menu' : 'Abrir menu'}
+            aria-label={menuOpen ? t('closeMenu') : t('openMenu')}
             aria-expanded={menuOpen}
           >
             <svg
@@ -145,22 +174,26 @@ export function Navbar() {
               onClick={closeMenu}
               className="rounded-md px-2 py-2 text-suave hover:bg-white/5 hover:text-white"
             >
-              Fixture
+              {t('navFixture')}
             </Link>
             <Link
               href="/ranking"
               onClick={closeMenu}
               className="rounded-md px-2 py-2 text-suave hover:bg-white/5 hover:text-white"
             >
-              Ranking
+              {t('navRanking')}
             </Link>
             <Link
               href="/foro"
               onClick={closeMenu}
               className="rounded-md px-2 py-2 text-suave hover:bg-white/5 hover:text-white"
             >
-              Foro
+              {t('navForum')}
             </Link>
+          </div>
+
+          <div className="mt-3 border-t border-white/10 pt-3">
+            <LangSwitcher />
           </div>
 
           <div className="mt-3 border-t border-white/10 pt-3">
@@ -183,7 +216,7 @@ export function Navbar() {
                   }}
                   className="text-sm text-suave hover:text-white"
                 >
-                  Salir
+                  {t('signOut')}
                 </button>
               </div>
             ) : (
@@ -194,7 +227,7 @@ export function Navbar() {
                 }}
                 className="w-full rounded-md bg-oro px-4 py-2 text-sm font-semibold text-negro transition hover:bg-oro/90"
               >
-                Ingresar con Google
+                {t('signIn')}
               </button>
             )}
           </div>
