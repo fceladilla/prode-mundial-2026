@@ -86,7 +86,7 @@ Abri http://localhost:3000
 | Acierto | Puntos |
 |---|---|
 | Marcador exacto | 5 |
-| Ganador / empate correcto | 2 |
+| Ganador / empate correcto | 3 |
 | Sin acierto | 0 |
 
 El exacto reemplaza (no suma) al acierto de ganador. Maximo 5 por partido.

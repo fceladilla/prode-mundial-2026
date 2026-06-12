@@ -29,8 +29,12 @@ function PointsBadge({ p }: { p: Prediction }) {
   if (!p.evaluated) return <span className="text-suave">{t('pending')}</span>;
   if (p.pointsEarned === 5)
     return <span className="font-display font-bold text-oro">🎯 5 pts</span>;
-  if (p.pointsEarned === 2)
-    return <span className="font-display font-bold text-estadio">★ 2 pts</span>;
+  if (p.pointsEarned > 0)
+    return (
+      <span className="font-display font-bold text-estadio">
+        ★ {p.pointsEarned} pts
+      </span>
+    );
   return <span className="text-suave">— 0 pts</span>;
 }
 

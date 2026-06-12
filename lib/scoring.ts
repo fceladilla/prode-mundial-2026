@@ -1,7 +1,8 @@
 /**
- * Reglas de puntuacion (ver SOP seccion 7):
+ * Reglas de puntuacion (ver SOP seccion 7; el acierto de resultado subio
+ * de 2 a 3 puntos el 2026-06-12, con migracion retroactiva):
  *   - Marcador exacto                          -> 5 puntos
- *   - Ganador/empate correcto (marcador erroneo) -> 2 puntos
+ *   - Ganador/empate correcto (marcador erroneo) -> 3 puntos
  *   - Sin acierto                              -> 0 puntos
  *
  * El acierto exacto REEMPLAZA (no suma) al acierto de ganador.
@@ -23,5 +24,5 @@ export function computePoints(
   const correctOutcome =
     Math.sign(predictedHomeGoals - predictedAwayGoals) ===
     Math.sign(homeGoals - awayGoals);
-  return correctOutcome ? 2 : 0;
+  return correctOutcome ? 3 : 0;
 }

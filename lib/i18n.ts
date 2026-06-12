@@ -91,7 +91,7 @@ const es = {
   viewFullRanking: 'Ver ranking completo →',
   rankingTitle: 'Ranking general',
   rankingTagline:
-    'Posiciones en tiempo real. Sumas 2 puntos por acertar el resultado y 5 por el marcador exacto.',
+    'Posiciones en tiempo real. Sumas 3 puntos por acertar el resultado y 5 por el marcador exacto.',
 
   // Foro
   forumTagline:
@@ -205,7 +205,7 @@ const ca: Dict = {
   viewFullRanking: 'Mostra la classificació completa →',
   rankingTitle: 'Classificació general',
   rankingTagline:
-    'Posicions en temps real. Sumes 2 punts per encertar el resultat i 5 pel marcador exacte.',
+    'Posicions en temps real. Sumes 3 punts per encertar el resultat i 5 pel marcador exacte.',
 
   forumTagline:
     'Xerrada general del prode. Per comentar un partit concret, obre els comentaris des de la seva targeta al calendari.',
@@ -311,7 +311,7 @@ const en: Dict = {
   viewFullRanking: 'View full leaderboard →',
   rankingTitle: 'Overall leaderboard',
   rankingTagline:
-    'Live standings. You earn 2 points for the correct outcome and 5 for the exact score.',
+    'Live standings. You earn 3 points for the correct outcome and 5 for the exact score.',
 
   forumTagline:
     'General chat about the prode. To discuss a specific match, open the comments from its card in the fixtures.',

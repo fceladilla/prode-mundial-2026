@@ -96,7 +96,7 @@ async function finishMatch(
     batch.update(db.collection('users').doc(p.userId), {
       totalPoints: FieldValue.increment(points),
       ...(points === 5 && { exactResults: FieldValue.increment(1) }),
-      ...(points === 2 && { correctResults: FieldValue.increment(1) }),
+      ...(points === 3 && { correctResults: FieldValue.increment(1) }),
     });
     evaluated++;
   }

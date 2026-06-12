@@ -81,7 +81,7 @@ Other users' predictions become readable once `match.status !== 'upcoming'` (enf
 ## Scoring Rules
 
 - Exact scoreline → **5 points**
-- Correct winner/draw (wrong score) → **2 points**
+- Correct winner/draw (wrong score) → **3 points** (was 2 until 2026-06-12; existing predictions were migrated with `scripts/migrateOutcomePoints.ts`)
 - Miss → **0 points**
 - Exact replaces (does not stack with) correct-outcome; max 5 pts per match.
 

@@ -58,10 +58,10 @@ ves su "id".
 ------------------------------------------------------------------------
 
   - Marcador EXACTO (ej. pronostico 2-1 y salio 2-1) ...... 5 puntos
-  - Acertar solo el resultado (gano/empato/perdio) ........ 2 puntos
+  - Acertar solo el resultado (gano/empato/perdio) ........ 3 puntos
   - No acertar ............................................ 0 puntos
 
-El exacto NO se suma con el de resultado: es 5 O 2, maximo 5 por partido.
+El exacto NO se suma con el de resultado: es 5 O 3, maximo 5 por partido.
 
 
 ------------------------------------------------------------------------

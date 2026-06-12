@@ -264,15 +264,15 @@ leaderboard/{userId}
 
 | Acierto | Puntos |
 |---|---|
-| Adivina el ganador (o empate) correctamente | **+2 puntos** |
+| Adivina el ganador (o empate) correctamente | **+3 puntos** |
 | Adivina el marcador exacto | **+5 puntos** |
 | Sin acierto | 0 puntos |
 
 **Ejemplos:**
 
-- Partido: Argentina 2 – Francia 1. Usuario pronosticó Argentina 1 – Francia 0 → Argentina ganó ✓ → **+2 pts**
+- Partido: Argentina 2 – Francia 1. Usuario pronosticó Argentina 1 – Francia 0 → Argentina ganó ✓ → **+3 pts**
 - Partido: Argentina 2 – Francia 1. Usuario pronosticó Argentina 2 – Francia 1 exacto → **+5 pts** (incluye el acierto de ganador, no son acumulativos)
-- Partido: empate 1–1. Usuario pronosticó empate 2–2 → empate correcto ✓ → **+2 pts**
+- Partido: empate 1–1. Usuario pronosticó empate 2–2 → empate correcto ✓ → **+3 pts**
 - Partido: empate 1–1. Usuario pronosticó empate 1–1 exacto → **+5 pts**
 
 > **Regla:** el marcador exacto reemplaza (no suma) al acierto de ganador. El máximo por partido es 5 puntos.

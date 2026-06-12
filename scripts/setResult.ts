@@ -81,7 +81,7 @@ async function main() {
       awayGoals
     );
     const exact = points === 5;
-    const correct = points === 2;
+    const correct = points === 3;
 
     batch.update(doc.ref, { pointsEarned: points, evaluated: true });
     batch.update(db.collection('users').doc(p.userId), {

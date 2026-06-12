@@ -18,9 +18,9 @@ function PointsBadge({
   if (!evaluated) return null;
   if (points === 5)
     return <span className="font-display font-bold text-oro">🎯 5 pts</span>;
-  if (points === 2)
+  if (points > 0)
     return (
-      <span className="font-display font-bold text-estadio">★ 2 pts</span>
+      <span className="font-display font-bold text-estadio">★ {points} pts</span>
     );
   return <span className="text-suave">— 0 pts</span>;
 }

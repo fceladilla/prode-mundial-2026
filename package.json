@@ -11,6 +11,7 @@
     "set-result": "tsx scripts/setResult.ts",
     "sync-results": "tsx scripts/syncResults.ts",
     "add-prediction": "tsx scripts/addPrediction.ts",
+    "migrate-3pts": "tsx scripts/migrateOutcomePoints.ts",
     "reset-scores": "tsx scripts/resetScores.ts"
   },
   "dependencies": {
