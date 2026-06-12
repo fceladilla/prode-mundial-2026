@@ -6,6 +6,7 @@ import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { getDbClient } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/hooks/useLanguage';
+import { useUnreadComments } from '@/hooks/useUnreadComments';
 import type { TranslationKey } from '@/lib/i18n';
 import { Flag } from './Flag';
 import { CommentSection } from './CommentSection';
@@ -42,6 +43,7 @@ export function MatchCard({
 }) {
   const { user } = useAuth();
   const { t } = useLanguage();
+  const { unreadCount } = useUnreadComments();
   const [home, setHome] = useState('');
   const [away, setAway] = useState('');
   const [saving, setSaving] = useState(false);
@@ -218,9 +220,17 @@ export function MatchCard({
         )}
         <button
           onClick={() => setShowComments((v) => !v)}
-          className="hover:text-white"
+          className="flex items-center gap-1.5 hover:text-white"
         >
           {t('commentsToggle')} {showComments ? '▴' : '▾'}
+          {!showComments && unreadCount(match.id) > 0 && (
+            <span
+              title={t('unreadBadge', { count: unreadCount(match.id) })}
+              className="rounded-full bg-oro px-1.5 py-0.5 text-[10px] font-bold leading-none text-negro"
+            >
+              {unreadCount(match.id)}
+            </span>
+          )}
         </button>
       </div>
 

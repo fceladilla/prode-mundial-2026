@@ -80,6 +80,10 @@ const es = {
   loadingComments: 'Cargando comentarios...',
   noComments: 'Todavia no hay comentarios. ¡Se el primero!',
   commentError: 'No se pudo publicar el comentario. Proba de nuevo.',
+  signInToSeeComments: 'Inicia sesion para ver el foro y los comentarios.',
+  likeButton: 'Me gusta',
+  unlikeButton: 'Quitar me gusta',
+  unreadBadge: '{count} comentarios nuevos',
 
   // Leaderboard / Sidebar / Ranking
   noPlayersYet: 'Todavia no hay jugadores.',
@@ -191,6 +195,10 @@ const ca: Dict = {
   loadingComments: 'Carregant comentaris...',
   noComments: 'Encara no hi ha comentaris. Sigues el primer!',
   commentError: "No s'ha pogut publicar el comentari. Torna-ho a provar.",
+  signInToSeeComments: 'Inicia sessió per veure el fòrum i els comentaris.',
+  likeButton: "M'agrada",
+  unlikeButton: "Treure el m'agrada",
+  unreadBadge: '{count} comentaris nous',
 
   noPlayersYet: 'Encara no hi ha jugadors.',
   sidebarRanking: 'Classificació',
@@ -293,6 +301,10 @@ const en: Dict = {
   loadingComments: 'Loading comments...',
   noComments: 'No comments yet. Be the first!',
   commentError: 'Could not post the comment. Try again.',
+  signInToSeeComments: 'Sign in to see the forum and comments.',
+  likeButton: 'Like',
+  unlikeButton: 'Unlike',
+  unreadBadge: '{count} new comments',
 
   noPlayersYet: 'No players yet.',
   sidebarRanking: 'Leaderboard',

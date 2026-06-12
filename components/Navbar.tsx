@@ -4,9 +4,26 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/hooks/useLanguage';
+import { useUnreadComments } from '@/hooks/useUnreadComments';
 import { LANGS } from '@/lib/i18n';
 import { Avatar } from './Avatar';
 import { SearchBar } from './SearchBar';
+
+// Badge de comentarios sin leer del foro global, junto al link "Foro".
+function ForumBadge() {
+  const { unreadCount } = useUnreadComments();
+  const { t } = useLanguage();
+  const count = unreadCount(null);
+  if (count === 0) return null;
+  return (
+    <span
+      title={t('unreadBadge', { count })}
+      className="ml-1.5 inline-block rounded-full bg-oro px-1.5 py-0.5 align-middle text-[10px] font-bold leading-none text-negro"
+    >
+      {count}
+    </span>
+  );
+}
 
 function LangSwitcher({ onSelect }: { onSelect?: () => void }) {
   const { lang, setLang } = useLanguage();
@@ -61,6 +78,7 @@ export function Navbar() {
             </Link>
             <Link href="/foro" className="hover:text-white">
               {t('navForum')}
+              <ForumBadge />
             </Link>
           </div>
         </div>
@@ -189,6 +207,7 @@ export function Navbar() {
               className="rounded-md px-2 py-2 text-suave hover:bg-white/5 hover:text-white"
             >
               {t('navForum')}
+              <ForumBadge />
             </Link>
           </div>
 
