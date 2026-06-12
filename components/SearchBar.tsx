@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { getDbClient } from '@/lib/firebase';
 import { formatDisplayName } from '@/lib/formatName';
-import type { Match } from '@/lib/types';
+import { argDateKey, argDateLabel } from '@/lib/dates';
+import type { Match, Team } from '@/lib/types';
 import { Avatar } from './Avatar';
+import { Flag } from './Flag';
 
 interface UserResult {
   uid: string;
@@ -15,7 +17,15 @@ interface UserResult {
   totalPoints: number;
 }
 
+interface DateResult {
+  key: string; // "2026-06-11"
+  label: string; // "Jueves 11 de junio"
+  count: number;
+}
+
 type Result =
+  | { kind: 'team'; team: Team; count: number }
+  | { kind: 'date'; date: DateResult }
   | { kind: 'match'; match: Match }
   | { kind: 'user'; user: UserResult };
 
@@ -27,6 +37,19 @@ function normalize(s: string): string {
     .toLowerCase()
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '');
+}
+
+/** Formas escribibles de un dia ("11 de junio", "11/6", "hoy"...) ya normalizadas. */
+function dateForms(key: string, label: string): string[] {
+  const [, month, day] = key.split('-'); // "2026-06-11"
+  const d = Number(day);
+  const m = Number(month);
+  const forms = [normalize(label), `${d}/${m}`, `${d}/${month}`, key];
+  const todayKey = argDateKey(new Date());
+  const tomorrowKey = argDateKey(new Date(Date.now() + 24 * 60 * 60 * 1000));
+  if (key === todayKey) forms.push('hoy');
+  if (key === tomorrowKey) forms.push('manana');
+  return forms;
 }
 
 function scrollToMatch(matchId: string) {
@@ -47,7 +70,6 @@ function scrollToMatch(matchId: string) {
 
 export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
   const router = useRouter();
-  const pathname = usePathname();
   const [term, setTerm] = useState('');
   const [results, setResults] = useState<Result[]>([]);
   const [open, setOpen] = useState(false);
@@ -79,12 +101,45 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
         }));
       }
       const nt = normalize(t);
-      const matchHits: Result[] = matchesCache.current
-        .filter(
-          (m) =>
-            normalize(m.homeTeam.name).includes(nt) ||
-            normalize(m.awayTeam.name).includes(nt) ||
-            normalize(m.venue.city).includes(nt)
+      const all = matchesCache.current;
+
+      // Equipos: unicos por codigo, con cantidad de partidos.
+      const teamMap = new Map<string, { team: Team; count: number }>();
+      for (const m of all) {
+        for (const team of [m.homeTeam, m.awayTeam]) {
+          if (!normalize(team.name).includes(nt)) continue;
+          const e = teamMap.get(team.code);
+          if (e) e.count++;
+          else teamMap.set(team.code, { team, count: 1 });
+        }
+      }
+      const teamHits: Result[] = Array.from(teamMap.values())
+        .slice(0, MAX_PER_GROUP)
+        .map((e) => ({ kind: 'team' as const, ...e }));
+
+      // Fechas: dias distintos cuya forma escrita coincide con el termino.
+      const dayMap = new Map<string, DateResult>();
+      for (const m of all) {
+        const d = m.scheduledAt.toDate();
+        const key = argDateKey(d);
+        const e = dayMap.get(key);
+        if (e) e.count++;
+        else dayMap.set(key, { key, label: argDateLabel(d), count: 1 });
+      }
+      const dateHits: Result[] = Array.from(dayMap.values())
+        .filter((day) => dateForms(day.key, day.label).some((f) => f.includes(nt)))
+        .slice(0, 3)
+        .map((date) => ({ kind: 'date' as const, date }));
+
+      // Partidos sueltos: si el termino ya matcheo un equipo, solo por sede
+      // (los partidos del equipo se ven con su filtro y serian redundantes).
+      const matchHits: Result[] = all
+        .filter((m) =>
+          teamHits.length > 0
+            ? normalize(m.venue.city).includes(nt)
+            : normalize(m.homeTeam.name).includes(nt) ||
+              normalize(m.awayTeam.name).includes(nt) ||
+              normalize(m.venue.city).includes(nt)
         )
         .slice(0, MAX_PER_GROUP)
         .map((match) => ({ kind: 'match' as const, match }));
@@ -108,7 +163,7 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
         .slice(0, MAX_PER_GROUP)
         .map((user) => ({ kind: 'user' as const, user }));
 
-      setResults([...matchHits, ...userHits]);
+      setResults([...teamHits, ...dateHits, ...matchHits, ...userHits]);
       setActive(0);
       setOpen(true);
     }, 300);
@@ -130,8 +185,14 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
     setTerm('');
     if (r.kind === 'user') {
       router.push(`/perfil/${r.user.uid}`);
+    } else if (r.kind === 'team') {
+      router.push(`/?equipo=${encodeURIComponent(r.team.code)}`);
+    } else if (r.kind === 'date') {
+      router.push(`/?fecha=${r.date.key}`);
     } else {
-      if (pathname !== '/') router.push('/');
+      // push('/') tambien limpia un filtro ?equipo=/?fecha= activo,
+      // que podria ocultar el card buscado.
+      router.push('/');
       scrollToMatch(r.match.id);
     }
   };
@@ -155,8 +216,24 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
     }
   };
 
-  const matchResults = results.filter((r) => r.kind === 'match');
-  const userResults = results.filter((r) => r.kind === 'user');
+  // Grupos en el orden en que estan en `results`, para que el indice
+  // activo del teclado coincida con el orden visual.
+  const groups: { title: string; items: { result: Result; idx: number }[] }[] = [
+    { title: 'Equipos', items: [] },
+    { title: 'Fechas', items: [] },
+    { title: 'Partidos', items: [] },
+    { title: 'Jugadores', items: [] },
+  ];
+  results.forEach((result, idx) => {
+    const gi =
+      result.kind === 'team' ? 0 : result.kind === 'date' ? 1 : result.kind === 'match' ? 2 : 3;
+    groups[gi].items.push({ result, idx });
+  });
+
+  const rowClass = (idx: number) =>
+    `flex w-full items-center gap-2 px-3 py-2 text-left text-sm ${
+      idx === active ? 'bg-carbon' : ''
+    }`;
 
   return (
     <div ref={rootRef} className="relative w-full">
@@ -166,8 +243,8 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
         onKeyDown={onKeyDown}
         onFocus={() => results.length > 0 && setOpen(true)}
         autoFocus={autoFocus}
-        placeholder="Buscar partido o jugador..."
-        aria-label="Buscar partido o jugador"
+        placeholder="Buscar pais, fecha o jugador..."
+        aria-label="Buscar pais, fecha o jugador"
         className="h-9 w-full rounded-md bg-carbon px-3 text-sm outline-none ring-1 ring-white/15 placeholder:text-suave focus:ring-2 focus:ring-oro"
       />
 
@@ -176,63 +253,74 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
           {results.length === 0 ? (
             <p className="px-3 py-2 text-sm text-suave">Sin resultados.</p>
           ) : (
-            <>
-              {matchResults.length > 0 && (
-                <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wide text-suave">
-                  Partidos
-                </p>
-              )}
-              {matchResults.map((r, i) =>
-                r.kind === 'match' ? (
-                  <button
-                    key={r.match.id}
-                    onClick={() => select(r)}
-                    onMouseEnter={() => setActive(i)}
-                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm ${
-                      i === active ? 'bg-carbon' : ''
-                    }`}
-                  >
-                    <span className="min-w-0 flex-1 truncate">
-                      {r.match.homeTeam.name} vs {r.match.awayTeam.name}
-                    </span>
-                    <span className="shrink-0 text-xs text-suave">
-                      {r.match.venue.city}
-                    </span>
-                  </button>
-                ) : null
-              )}
-              {userResults.length > 0 && (
-                <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wide text-suave">
-                  Jugadores
-                </p>
-              )}
-              {userResults.map((r, i) => {
-                if (r.kind !== 'user') return null;
-                const idx = matchResults.length + i;
-                return (
-                  <button
-                    key={r.user.uid}
-                    onClick={() => select(r)}
-                    onMouseEnter={() => setActive(idx)}
-                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm ${
-                      idx === active ? 'bg-carbon' : ''
-                    }`}
-                  >
-                    <Avatar
-                      src={r.user.photoURL}
-                      name={r.user.displayName}
-                      size={22}
-                    />
-                    <span className="min-w-0 flex-1 truncate">
-                      {formatDisplayName(r.user.displayName)}
-                    </span>
-                    <span className="shrink-0 font-display text-xs font-bold text-oro">
-                      {r.user.totalPoints} pts
-                    </span>
-                  </button>
-                );
-              })}
-            </>
+            groups.map((g) =>
+              g.items.length === 0 ? null : (
+                <div key={g.title}>
+                  <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wide text-suave">
+                    {g.title}
+                  </p>
+                  {g.items.map(({ result: r, idx }) => (
+                    <button
+                      key={idx}
+                      onClick={() => select(r)}
+                      onMouseEnter={() => setActive(idx)}
+                      className={rowClass(idx)}
+                    >
+                      {r.kind === 'team' ? (
+                        <>
+                          <Flag
+                            flag={r.team.flag}
+                            code={r.team.code}
+                            name={r.team.name}
+                            height={16}
+                          />
+                          <span className="min-w-0 flex-1 truncate">
+                            {r.team.name}
+                          </span>
+                          <span className="shrink-0 text-xs text-suave">
+                            {r.count} {r.count === 1 ? 'partido' : 'partidos'}
+                          </span>
+                        </>
+                      ) : r.kind === 'date' ? (
+                        <>
+                          <span aria-hidden>📅</span>
+                          <span className="min-w-0 flex-1 truncate">
+                            {r.date.label}
+                          </span>
+                          <span className="shrink-0 text-xs text-suave">
+                            {r.date.count}{' '}
+                            {r.date.count === 1 ? 'partido' : 'partidos'}
+                          </span>
+                        </>
+                      ) : r.kind === 'match' ? (
+                        <>
+                          <span className="min-w-0 flex-1 truncate">
+                            {r.match.homeTeam.name} vs {r.match.awayTeam.name}
+                          </span>
+                          <span className="shrink-0 text-xs text-suave">
+                            {r.match.venue.city}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Avatar
+                            src={r.user.photoURL}
+                            name={r.user.displayName}
+                            size={22}
+                          />
+                          <span className="min-w-0 flex-1 truncate">
+                            {formatDisplayName(r.user.displayName)}
+                          </span>
+                          <span className="shrink-0 font-display text-xs font-bold text-oro">
+                            {r.user.totalPoints} pts
+                          </span>
+                        </>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )
+            )
           )}
         </div>
       )}
