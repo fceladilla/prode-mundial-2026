@@ -29,7 +29,7 @@ function passesFilter(m: Match, view: string): boolean {
     case 'final':
       return m.stage === 'Final' || m.stage === 'Tercer Puesto';
     default:
-      return true; // 'todos' y 'fecha' muestran todos
+      return true; // 'todos' muestra todos
   }
 }
 
@@ -93,7 +93,7 @@ export default function FixturePage() {
     const map = new Map<string, Match[]>();
     for (const m of matches) {
       if (!passesFilter(m, view)) continue;
-      const label = view === 'fecha' ? dateLabel(m) : m.stage;
+      const label = view === 'todos' ? dateLabel(m) : m.stage;
       const arr = map.get(label) ?? [];
       arr.push(m);
       map.set(label, arr);

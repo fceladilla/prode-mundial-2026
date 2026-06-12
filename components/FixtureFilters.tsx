@@ -13,7 +13,6 @@ export const FIXTURE_FILTERS: FilterOption[] = [
   { id: 'cuartos', label: 'Cuartos' },
   { id: 'semis', label: 'Semis' },
   { id: 'final', label: 'Final' },
-  { id: 'fecha', label: '📅 Por fecha' },
 ];
 
 export function FixtureFilters({
