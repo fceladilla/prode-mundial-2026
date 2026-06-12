@@ -28,7 +28,9 @@ service cloud.firestore {
     // Lectura: el dueno siempre; otros usuarios solo cuando el partido ya no
     // esta "upcoming" (empezo o termino). Escritura: solo el dueno, solo
     // mientras el partido siga "upcoming" y antes de su horario de inicio.
-    // No puede auto-asignarse puntos.
+    // No puede auto-asignarse puntos. El ID del doc debe ser {uid}_{matchId}:
+    // garantiza UN pronostico por usuario por partido (los scripts de scoring
+    // evaluan todos los docs del matchId, sin esto se podria cobrar N veces).
     match /predictions/{predId} {
       allow read: if request.auth != null
         && resource.data.userId == request.auth.uid;
@@ -36,6 +38,7 @@ service cloud.firestore {
         && matchData(resource.data.matchId).status != 'upcoming';
       allow create, update: if request.auth != null
         && request.resource.data.userId == request.auth.uid
+        && predId == request.auth.uid + '_' + request.resource.data.matchId
         && request.resource.data.predictedHomeGoals >= 0
         && request.resource.data.predictedAwayGoals >= 0
         && request.resource.data.pointsEarned == 0
