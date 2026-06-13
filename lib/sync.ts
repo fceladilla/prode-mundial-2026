@@ -7,10 +7,12 @@
  * codigos FIFA (tla) + fecha UTC del dia. Los que no matchean se loguean y se
  * omiten (se pueden cargar a mano con `npm run set-result`).
  *
- *   - API FINISHED        -> result + status "finished" + evaluacion de pronosticos
- *   - API IN_PLAY / PAUSED -> status "live" + liveScore (parcial que se refresca
- *     en cada corrida; NO asigna puntos). El cierre/revelacion de pronosticos
- *     pasa a la hora exacta del kickoff (cliente + reglas), no por esto.
+ *   - API FINISHED -> result + status "finished" + evaluacion de pronosticos
+ *
+ * NO seguimos el partido en vivo: el cartel "EN VIVO" lo calcula el cliente por
+ * la hora de kickoff (sin escrituras), asi que el sync no marca "live" ni
+ * escribe parciales. Eso permite correrlo poco seguido (solo para finalizar) y
+ * baja muchisimo el consumo de Firestore. Lee solo los partidos no finalizados.
  *
  * Es idempotente: omite partidos ya "finished" y pronosticos ya evaluados.
  */
@@ -30,7 +32,6 @@ interface ApiMatch {
 
 export interface SyncSummary {
   finished: number;
-  live: number;
   unmatched: number;
   logs: string[];
 }
@@ -111,22 +112,22 @@ export async function runSync(db: Firestore, apiKey: string): Promise<SyncSummar
 
   const [apiMatches, oursSnap] = await Promise.all([
     fetchApiMatches(apiKey),
-    db.collection('matches').get(),
+    // Solo leemos los partidos aun no finalizados: el cron solo finaliza, asi
+    // que ya no necesitamos releer los terminados (menos lecturas en Firestore).
+    db.collection('matches').where('status', '!=', 'finished').get(),
   ]);
 
   // Indice de nuestros partidos no terminados, por clave de emparejamiento.
-  const pending = new Map<string, { id: string; status: string }>();
+  const pending = new Map<string, { id: string }>();
   for (const doc of oursSnap.docs) {
     const m = doc.data();
-    if (m.status === 'finished') continue;
     pending.set(
       matchKey(m.homeTeam.code, m.awayTeam.code, m.scheduledAt.toDate()),
-      { id: doc.id, status: m.status }
+      { id: doc.id }
     );
   }
 
   let finished = 0;
-  let live = 0;
   let unmatched = 0;
 
   for (const am of apiMatches) {
@@ -134,11 +135,8 @@ export async function runSync(db: Firestore, apiKey: string): Promise<SyncSummar
     const awayTla = am.awayTeam.tla;
     if (!homeTla || !awayTla) continue; // cruces aun sin equipos definidos
 
-    const relevant =
-      am.status === 'FINISHED' ||
-      am.status === 'IN_PLAY' ||
-      am.status === 'PAUSED';
-    if (!relevant) continue;
+    // Solo nos interesan los finalizados: el "en vivo" es del lado del cliente.
+    if (am.status !== 'FINISHED') continue;
 
     const ours = pending.get(matchKey(homeTla, awayTla, new Date(am.utcDate)));
     if (!ours) {
@@ -150,35 +148,21 @@ export async function runSync(db: Firestore, apiKey: string): Promise<SyncSummar
       continue;
     }
 
-    if (am.status === 'FINISHED') {
-      const home = am.score.fullTime.home;
-      const away = am.score.fullTime.away;
-      if (home == null || away == null) continue;
-      const { evaluated, skipped } = await finishMatch(db, ours.id, home, away);
-      finished++;
-      logs.push(
-        `OK: ${homeTla} ${home}-${away} ${awayTla} (${ours.id}) -> finished | ` +
-          `evaluados: ${evaluated}${skipped ? ` | omitidos: ${skipped}` : ''}`
-      );
-    } else {
-      // IN_PLAY / PAUSED: marca "live" y refresca el resultado parcial en cada
-      // corrida (no asigna puntos: eso solo pasa con FINISHED). El marcador en
-      // juego viene en score.fullTime; null al inicio -> 0.
-      const home = am.score.fullTime.home ?? 0;
-      const away = am.score.fullTime.away ?? 0;
-      await db.collection('matches').doc(ours.id).update({
-        status: 'live',
-        liveScore: { homeGoals: home, awayGoals: away },
-      });
-      live++;
-      logs.push(`EN VIVO: ${homeTla} ${home}-${away} ${awayTla} (${ours.id})`);
-    }
+    const home = am.score.fullTime.home;
+    const away = am.score.fullTime.away;
+    if (home == null || away == null) continue;
+    const { evaluated, skipped } = await finishMatch(db, ours.id, home, away);
+    finished++;
+    logs.push(
+      `OK: ${homeTla} ${home}-${away} ${awayTla} (${ours.id}) -> finished | ` +
+        `evaluados: ${evaluated}${skipped ? ` | omitidos: ${skipped}` : ''}`
+    );
   }
 
   logs.push(
-    `Listo. Finalizados: ${finished} | pasados a live: ${live}` +
+    `Listo. Finalizados: ${finished}` +
       (unmatched ? ` | sin emparejar: ${unmatched}` : '')
   );
 
-  return { finished, live, unmatched, logs };
+  return { finished, unmatched, logs };
 }

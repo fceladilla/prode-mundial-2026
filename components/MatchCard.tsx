@@ -90,23 +90,14 @@ export function MatchCard({
   // edicion: al llegar la hora del partido (o si el status ya cambio).
   const revealed = locked;
 
-  // Marcador a mostrar en la columna central: el final si el partido termino,
-  // o el parcial en vivo mientras esta "live" (lo refresca el sync).
-  const shownScore =
-    match.status === 'finished'
-      ? match.result
-      : match.status === 'live'
-        ? match.liveScore ?? null
-        : null;
+  // Marcador a mostrar en la columna central: solo el resultado final. Durante
+  // el partido no mostramos parcial (no seguimos el juego en vivo).
+  const shownScore = match.status === 'finished' ? match.result : null;
 
+  // "EN VIVO" se decide por la hora: arranca al kickoff y dura hasta que el sync
+  // marca el partido finalizado. No depende de un status "live" escrito.
   const displayStatus: DisplayStatus =
-    match.status === 'finished'
-      ? 'finished'
-      : match.status === 'live'
-        ? 'live'
-        : started
-          ? 'closed'
-          : 'upcoming';
+    match.status === 'finished' ? 'finished' : started ? 'live' : 'upcoming';
   const st = STATUS[displayStatus];
 
   const save = async () => {
@@ -166,11 +157,6 @@ export function MatchCard({
           <div className="text-center font-display leading-tight">
             <AnimatedNumber value={shownScore.homeGoals} className="block text-3xl font-bold" />
             <AnimatedNumber value={shownScore.awayGoals} className="block text-3xl font-bold" />
-            {match.status === 'live' && (
-              <div className="mt-1 animate-pulse text-[10px] font-bold uppercase text-rojo">
-                {t('partialScore')}
-              </div>
-            )}
           </div>
         ) : canPredict ? (
           <div className="flex flex-col gap-2">
@@ -219,13 +205,6 @@ export function MatchCard({
           >
             {saved ? t('savedOk') : saving ? t('saving') : t('save')}
           </motion.button>
-        </div>
-      )}
-
-      {match.status === 'live' && prediction && (
-        <div className="mt-3 border-t border-white/10 pt-2 text-right text-sm text-suave">
-          {t('yourPrediction')} {prediction.predictedHomeGoals}-
-          {prediction.predictedAwayGoals}
         </div>
       )}
 
