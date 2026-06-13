@@ -9,6 +9,7 @@ import {
   getDocs,
   orderBy,
   query,
+  Timestamp,
   where,
 } from 'firebase/firestore';
 import { getDbClient } from '@/lib/firebase';
@@ -68,13 +69,15 @@ export default function PerfilPage({
       });
 
       // Solo partidos ya iniciados: las rules permiten leer predicciones
-      // ajenas unicamente cuando el partido no esta "upcoming". Se leen los
-      // docs por id ({userId}_{matchId}) porque una query por userId ajeno
-      // seria rechazada por las rules.
+      // ajenas desde que el partido empieza (su horario ya paso). Se filtra por
+      // scheduledAt <= ahora en vez de por status para revelar a la hora exacta
+      // del inicio, sin depender de que el sync haya marcado el partido "live"
+      // (corre cada 30 min). Se leen los docs por id ({userId}_{matchId})
+      // porque una query por userId ajeno seria rechazada por las rules.
       const matchesSnap = await getDocs(
         query(
           collection(db, 'matches'),
-          where('status', 'in', ['live', 'finished']),
+          where('scheduledAt', '<=', Timestamp.now()),
           orderBy('scheduledAt', 'desc')
         )
       );

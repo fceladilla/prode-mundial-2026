@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { getDbClient } from '@/lib/firebase';
-import type { MatchStatus } from '@/lib/types';
 
 export interface PublicPrediction {
   userId: string;
@@ -17,16 +16,17 @@ export interface PublicPrediction {
 
 /**
  * Carga todas las predicciones de un partido.
- * Solo funciona (Firestore lo permite) cuando match.status !== 'upcoming'.
- * Devuelve array vacio si el partido todavia no empezo.
+ * Solo funciona (Firestore lo permite) una vez que el partido empezo; el
+ * llamador pasa `enabled` con ese criterio (hora de inicio cumplida o status
+ * distinto de "upcoming"). Devuelve array vacio si todavia no empezo.
  */
-export function useMatchPredictions(matchId: string, matchStatus: MatchStatus) {
+export function useMatchPredictions(matchId: string, enabled: boolean) {
   const [predictions, setPredictions] = useState<PublicPrediction[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     // No intentar leer si el partido no empezo (las rules bloquearian igual).
-    if (matchStatus === 'upcoming') {
+    if (!enabled) {
       setPredictions([]);
       return;
     }
@@ -61,7 +61,7 @@ export function useMatchPredictions(matchId: string, matchStatus: MatchStatus) {
       // Error silencioso si las rules bloquean (partido upcoming).
       () => setLoading(false)
     );
-  }, [matchId, matchStatus]);
+  }, [matchId, enabled]);
 
   return { predictions, loading };
 }

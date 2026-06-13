@@ -69,9 +69,25 @@ export function MatchCard({
   useEffect(() => {
     if (kickoffMs > 0) setKickoffLabel(formatLocalKickoff(kickoffMs));
   }, [kickoffMs]);
-  const started = kickoffMs > 0 && Date.now() >= kickoffMs;
+
+  // Forzar un re-render exacto al llegar la hora del partido, para que el cierre
+  // de la edicion y la revelacion de predicciones ocurran a horario aunque el
+  // usuario tenga la pagina abierta (sin esperar a recargar ni al sync).
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (kickoffMs <= 0) return;
+    const ms = kickoffMs - Date.now();
+    if (ms <= 0) return;
+    const id = setTimeout(() => setNow(Date.now()), ms);
+    return () => clearTimeout(id);
+  }, [kickoffMs]);
+
+  const started = kickoffMs > 0 && now >= kickoffMs;
   const locked = match.status !== 'upcoming' || started;
   const canPredict = !!user && !locked;
+  // Las predicciones ajenas se revelan en el mismo momento en que se cierra la
+  // edicion: al llegar la hora del partido (o si el status ya cambio).
+  const revealed = locked;
 
   const displayStatus: DisplayStatus =
     match.status === 'finished'
@@ -210,7 +226,7 @@ export function MatchCard({
       {/* Predicciones de todos (solo post-inicio) y comentarios del partido,
           plegados por defecto para no abrir listeners en cada tarjeta. */}
       <div className="mt-3 flex gap-4 border-t border-white/10 pt-2 text-xs text-suave">
-        {match.status !== 'upcoming' && (
+        {revealed && (
           <button
             onClick={() => setShowPredictions((v) => !v)}
             className="hover:text-white"
@@ -234,8 +250,8 @@ export function MatchCard({
         </button>
       </div>
 
-      {showPredictions && match.status !== 'upcoming' && (
-        <MatchPredictionsPanel matchId={match.id} matchStatus={match.status} />
+      {showPredictions && revealed && (
+        <MatchPredictionsPanel matchId={match.id} revealed={revealed} />
       )}
       {showComments && (
         <div className="mt-3">

@@ -5,7 +5,6 @@ import { motion } from 'framer-motion';
 import { useMatchPredictions } from '@/hooks/useMatchPredictions';
 import { useLanguage } from '@/hooks/useLanguage';
 import { formatDisplayName } from '@/lib/formatName';
-import type { MatchStatus } from '@/lib/types';
 import { Avatar } from './Avatar';
 
 function PointsBadge({
@@ -27,19 +26,20 @@ function PointsBadge({
 
 /**
  * Lista de predicciones de todos los jugadores para un partido ya iniciado.
- * Con el partido "live" muestra solo el pronostico; con "finished", los puntos.
+ * `revealed` indica que el partido empezo (por hora o por status). Los puntos
+ * se muestran por prediccion segun su flag `evaluated`, no segun el status.
  */
 export function MatchPredictionsPanel({
   matchId,
-  matchStatus,
+  revealed,
 }: {
   matchId: string;
-  matchStatus: MatchStatus;
+  revealed: boolean;
 }) {
-  const { predictions, loading } = useMatchPredictions(matchId, matchStatus);
+  const { predictions, loading } = useMatchPredictions(matchId, revealed);
   const { t } = useLanguage();
 
-  if (matchStatus === 'upcoming') return null;
+  if (!revealed) return null;
 
   return (
     <motion.div

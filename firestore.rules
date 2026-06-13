@@ -25,17 +25,22 @@ service cloud.firestore {
     }
 
     // ---- PREDICTIONS ----
-    // Lectura: el dueno siempre; otros usuarios solo cuando el partido ya no
-    // esta "upcoming" (empezo o termino). Escritura: solo el dueno, solo
-    // mientras el partido siga "upcoming" y antes de su horario de inicio.
-    // No puede auto-asignarse puntos. El ID del doc debe ser {uid}_{matchId}:
-    // garantiza UN pronostico por usuario por partido (los scripts de scoring
-    // evaluan todos los docs del matchId, sin esto se podria cobrar N veces).
+    // Lectura: el dueno siempre; otros usuarios desde que el partido empieza.
+    // "Empezo" = ya paso su horario (scheduledAt <= ahora) O su status dejo de
+    // ser "upcoming". Se usa la hora y no solo el status porque el status lo
+    // actualiza el sync cada 30 min: sin la condicion horaria las predicciones
+    // ajenas recien se revelarian en la siguiente corrida del sync, no a la
+    // hora del inicio. Escritura: solo el dueno, solo mientras el partido siga
+    // "upcoming" y antes de su horario de inicio. No puede auto-asignarse
+    // puntos. El ID del doc debe ser {uid}_{matchId}: garantiza UN pronostico
+    // por usuario por partido (los scripts de scoring evaluan todos los docs
+    // del matchId, sin esto se podria cobrar N veces).
     match /predictions/{predId} {
       allow read: if request.auth != null
         && resource.data.userId == request.auth.uid;
       allow read: if request.auth != null
-        && matchData(resource.data.matchId).status != 'upcoming';
+        && (matchData(resource.data.matchId).status != 'upcoming'
+            || matchData(resource.data.matchId).scheduledAt <= request.time);
       allow create, update: if request.auth != null
         && request.resource.data.userId == request.auth.uid
         && predId == request.auth.uid + '_' + request.resource.data.matchId
