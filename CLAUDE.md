@@ -62,6 +62,8 @@ The UI supports **Spanish (default), Catalan and English**. All user-facing stri
 
 `lib/firebase.ts` does **not** export ready `auth`/`db` instances. It exports lazy getters `getAuthClient()` and `getDbClient()` plus `googleProvider`. Always call these getters from inside an effect or event handler (client-side) — never at module top level. This is deliberate: eager `getAuth()` at import time throws `auth/invalid-api-key` during `next build`'s static prerender (pages have no env vars then). Auth context/hook lives in `hooks/useAuth.tsx`.
 
+**Google sign-in is popup-on-desktop, redirect-on-mobile** (`hooks/useAuth.tsx`). `signInWithPopup` is unreliable on mobile browsers — the user completes the Google flow but returns to the app still signed out (the popup closes and the session is lost silently). So `signIn()` uses `signInWithRedirect` directly when `isMobile()` (userAgent check), and `signInWithPopup` on desktop with a redirect fallback if the browser blocks/closes the popup (`auth/popup-blocked`, `popup-closed-by-user`, `cancelled-popup-request`, `operation-not-supported-in-this-environment`). The redirect flow returns via `getRedirectResult()` (called in the mount effect), which runs the same `upsertUserProfile()` as the popup path — so the Firestore profile is created/refreshed either way. The redirect flow uses the `__/auth/handler` on `authDomain`, so any new app domain must be added under Firebase Console → Authentication → Settings → Authorized domains or the redirect fails.
+
 ## Data Model (Firestore)
 
 Four top-level collections:
