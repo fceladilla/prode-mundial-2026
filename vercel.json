@@ -1,4 +1,10 @@
 {
+  "rewrites": [
+    {
+      "source": "/__/auth/:path*",
+      "destination": "https://prode-mundial-2026-e55be.firebaseapp.com/__/auth/:path*"
+    }
+  ],
   "crons": [
     { "path": "/api/sync", "schedule": "0 12 * * *" }
   ]
