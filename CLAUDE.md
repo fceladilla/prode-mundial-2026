@@ -69,12 +69,12 @@ Four top-level collections:
 | Collection | Purpose |
 |---|---|
 | `users/{userId}` | Profile + denormalized totals (`totalPoints`, `exactResults`, `correctResults`) |
-| `matches/{matchId}` | Fixture data, `status: "upcoming"\|"live"\|"finished"`, and `result` (set by Cloud Function only) |
+| `matches/{matchId}` | Fixture data, `status: "upcoming"\|"live"\|"finished"`, `result` (final score, set by the scoring scripts only) and `liveScore` (partial score while `live`, refreshed by the sync each run — never read by the scoring logic) |
 | `predictions/{userId}_{matchId}` | One doc per user per match; `evaluated: false` until match finishes. Carries a `displayName`/`photoURL` snapshot so other users can render them post-kickoff. |
 | `comments/{commentId}` | Forum comments. `matchId: null` = global forum; otherwise tied to a match. Immutable once posted (author may delete). |
 | `leaderboard/{userId}` | Materialized view (SOP). **Not used in the MVP** — the leaderboard reads `users` directly, ordered by `totalPoints` desc. |
 
-Other users' predictions become readable once `match.status !== 'upcoming'` (enforced in rules). A query on someone else's `userId` is rejected by the rules engine — read the docs by deterministic id `{userId}_{matchId}` instead (see `app/perfil/[userId]/page.tsx`).
+Other users' predictions become readable **at kickoff time**: the rules allow reading them once `match.scheduledAt <= request.time` **or** `match.status !== 'upcoming'`. The kickoff condition is what reveals them on time — relying on `status` alone meant a delay, since the sync only flips `status` to `live` on its next run (see "Reveal/lock at kickoff" below). A query on someone else's `userId` is rejected by the rules engine — read the docs by deterministic id `{userId}_{matchId}` instead (see `app/perfil/[userId]/page.tsx`, which queries matches by `scheduledAt <= now`).
 
 `scheduledAt` is stored as UTC timestamp. `scheduledAtARG` and `scheduledAtESP` are pre-computed strings (UTC–3 and UTC+2 respectively — no DST for Argentina; Spain uses CEST in June–July).
 
@@ -87,11 +87,15 @@ Other users' predictions become readable once `match.status !== 'upcoming'` (enf
 
 Scoring is applied by the **`scripts/setResult.ts` admin script** — run `npm run set-result -- <matchId> <home> <away>`. It sets `result` + `status: "finished"`, evaluates every prediction with `computePoints` (`lib/scoring.ts`), and increments `users.totalPoints`/`exactResults`/`correctResults` via the Admin SDK (bypasses rules; no Blaze/Functions needed). Idempotent — skips predictions already `evaluated`. The `evaluatePredictions` Cloud Function (SOP §7) that would do this automatically on `matches/{matchId}` update is the planned upgrade, **not yet built** (needs the Blaze plan). Security rules block clients from writing their own score fields, so the Admin SDK is the only way points are awarded.
 
-**Automatic sync**: `scripts/syncResults.ts` (`npm run sync-results`) pulls scores from football-data.org (competition `WC`), matches fixtures by FIFA code pair + UTC date, marks in-play matches `live`, and applies the same scoring logic on finished ones. `.github/workflows/sync-results.yml` runs it every 30 min; it needs the `FOOTBALL_DATA_API_KEY` and `FIREBASE_SERVICE_ACCOUNT` (one-line JSON) GitHub Actions secrets.
+**Automatic sync**: `scripts/syncResults.ts` (`npm run sync-results`) pulls scores from football-data.org (competition `WC`), matches fixtures by FIFA code pair + UTC date, and on each run: marks in-play matches `live` and writes their partial score to `liveScore`; applies the scoring logic on finished ones (`result` + points, clearing `liveScore`). **Points are only ever awarded on `FINISHED` matches** — `liveScore` is a separate field the scoring path never reads, so a partial score can't trigger evaluation. The sync makes **one** API request per run (free plan allows 10/min). `.github/workflows/sync-results.yml` runs it **every 5 min during match hours (15–05 UTC) and hourly otherwise** (cron in UTC; the repo is public so Actions minutes are unlimited). It needs the `FOOTBALL_DATA_API_KEY` and `FIREBASE_SERVICE_ACCOUNT` (one-line JSON) GitHub Actions secrets.
+
+### Reveal/lock at kickoff
+
+Predictions both **lock** and become **public to other users** at the exact kickoff time, not when the sync flips `status`. Both UI and rules key off `scheduledAt`: `MatchCard` computes `started = now >= scheduledAt` (with a `setTimeout` that re-renders the card exactly at kickoff so an open page updates without reload), and `locked`/`revealed` derive from it; the rules allow reading others' predictions once `scheduledAt <= request.time`. `useMatchPredictions(matchId, enabled)` and `MatchPredictionsPanel` gate on that boolean, not on `status`. While a match is `live`, `MatchCard` shows `liveScore` (partial) with a pulsing "Parcial" label plus the viewer's own prediction.
 
 ## Business Rules
 
-- Predictions lock automatically when `match.status !== "upcoming"` (enforced by Firestore Security Rules, not just the UI).
+- Predictions lock automatically at kickoff (`scheduledAt <= now`) or when `match.status !== "upcoming"` — enforced by Firestore Security Rules, not just the UI.
 - Match results can only be written by Cloud Functions — the client has no write access to `matches/` or `leaderboard/`.
 - Users cannot read other users' predictions until the match has started.
 - The leaderboard is publicly readable without authentication.
