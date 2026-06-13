@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   collection,
@@ -49,6 +50,12 @@ function FixtureContent() {
   const [predictions, setPredictions] = useState<Record<string, Prediction>>({});
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('todos');
+  // Plegado por seccion. Guardamos solo los toggles explicitos del usuario; el
+  // default se deriva: una seccion arranca plegada si TODOS sus partidos ya se
+  // jugaron (finished), para llegar mas rapido a los dias por venir.
+  const [collapsedOverrides, setCollapsedOverrides] = useState<
+    Record<string, boolean>
+  >({});
 
   // Partidos en tiempo real, ordenados por fecha.
   useEffect(() => {
@@ -166,23 +173,57 @@ function FixtureContent() {
         <p className="text-suave">{t('noMatchesInView')}</p>
       ) : (
         <div className="space-y-8">
-          {sections.map(([label, list], gi) => (
-            <section key={label}>
-              <h2 className="mb-3 font-display text-xl font-bold text-oro">
-                {label}
-              </h2>
-              <div className="grid gap-3">
-                {list.map((m, i) => (
-                  <MatchCard
-                    key={m.id}
-                    match={m}
-                    prediction={predictions[m.id]}
-                    index={gi === 0 ? i : 0}
-                  />
-                ))}
-              </div>
-            </section>
-          ))}
+          {sections.map(([label, list], gi) => {
+            const allFinished =
+              list.length > 0 && list.every((m) => m.status === 'finished');
+            const collapsed = collapsedOverrides[label] ?? allFinished;
+            return (
+              <section key={label}>
+                <button
+                  onClick={() =>
+                    setCollapsedOverrides((p) => ({ ...p, [label]: !collapsed }))
+                  }
+                  aria-expanded={!collapsed}
+                  className="mb-3 flex w-full items-center gap-2 text-left font-display text-xl font-bold text-oro"
+                >
+                  <motion.span
+                    animate={{ rotate: collapsed ? -90 : 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="inline-block text-sm text-suave"
+                  >
+                    ▾
+                  </motion.span>
+                  <span>{label}</span>
+                  <span className="font-sans text-xs font-normal text-suave">
+                    {list.length}
+                  </span>
+                </button>
+                <AnimatePresence initial={false}>
+                  {!collapsed && (
+                    <motion.div
+                      key="content"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="grid gap-3">
+                        {list.map((m, i) => (
+                          <MatchCard
+                            key={m.id}
+                            match={m}
+                            prediction={predictions[m.id]}
+                            index={gi === 0 ? i : 0}
+                          />
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </section>
+            );
+          })}
         </div>
       )}
     </div>
