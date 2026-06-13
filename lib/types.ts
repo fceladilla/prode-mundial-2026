@@ -32,6 +32,10 @@ export interface Match {
   scheduledAtESP: string;
   status: MatchStatus;
   result: MatchResult | null;
+  // Resultado parcial mientras el partido esta "live" (lo refresca el sync en
+  // cada corrida). Separado de `result` a proposito: la logica de puntaje NUNCA
+  // lo lee, asi no hay riesgo de asignar puntos sobre un marcador en juego.
+  liveScore?: MatchResult | null;
 }
 
 export interface Prediction {

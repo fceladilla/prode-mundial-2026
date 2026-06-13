@@ -52,6 +52,7 @@ const es = {
   statusClosed: 'CERRADO',
   statusLive: 'EN VIVO',
   statusFinished: 'FINALIZADO',
+  partialScore: 'Parcial',
 
   // MatchCard
   goalsOf: 'Goles {name}',
@@ -169,6 +170,7 @@ const ca: Dict = {
   statusUpcoming: 'PROPER',
   statusClosed: 'TANCAT',
   statusLive: 'EN DIRECTE',
+  partialScore: 'Parcial',
   statusFinished: 'FINALITZAT',
 
   goalsOf: 'Gols {name}',
@@ -275,6 +277,7 @@ const en: Dict = {
   statusUpcoming: 'UPCOMING',
   statusClosed: 'CLOSED',
   statusLive: 'LIVE',
+  partialScore: 'Live',
   statusFinished: 'FINISHED',
 
   goalsOf: '{name} goals',

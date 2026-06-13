@@ -89,6 +89,15 @@ export function MatchCard({
   // edicion: al llegar la hora del partido (o si el status ya cambio).
   const revealed = locked;
 
+  // Marcador a mostrar en la columna central: el final si el partido termino,
+  // o el parcial en vivo mientras esta "live" (lo refresca el sync).
+  const shownScore =
+    match.status === 'finished'
+      ? match.result
+      : match.status === 'live'
+        ? match.liveScore ?? null
+        : null;
+
   const displayStatus: DisplayStatus =
     match.status === 'finished'
       ? 'finished'
@@ -152,10 +161,15 @@ export function MatchCard({
           <TeamRow team={match.awayTeam} />
         </div>
 
-        {match.status === 'finished' && match.result ? (
-          <div className="text-center font-display text-3xl font-bold leading-tight">
-            <div>{match.result.homeGoals}</div>
-            <div>{match.result.awayGoals}</div>
+        {shownScore ? (
+          <div className="text-center font-display leading-tight">
+            <div className="text-3xl font-bold">{shownScore.homeGoals}</div>
+            <div className="text-3xl font-bold">{shownScore.awayGoals}</div>
+            {match.status === 'live' && (
+              <div className="mt-1 animate-pulse text-[10px] font-bold uppercase text-rojo">
+                {t('partialScore')}
+              </div>
+            )}
           </div>
         ) : canPredict ? (
           <div className="flex flex-col gap-2">
@@ -202,6 +216,13 @@ export function MatchCard({
           >
             {saved ? t('savedOk') : saving ? t('saving') : t('save')}
           </button>
+        </div>
+      )}
+
+      {match.status === 'live' && prediction && (
+        <div className="mt-3 border-t border-white/10 pt-2 text-right text-sm text-suave">
+          {t('yourPrediction')} {prediction.predictedHomeGoals}-
+          {prediction.predictedAwayGoals}
         </div>
       )}
 

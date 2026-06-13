@@ -8,8 +8,9 @@
  * omiten (se pueden cargar a mano con `npm run set-result`).
  *
  *   - API FINISHED  -> result + status "finished" + evaluacion de pronosticos
- *   - API IN_PLAY / PAUSED -> status "live" (bloquea pronosticos y revela
- *     las predicciones de los demas)
+ *   - API IN_PLAY / PAUSED -> status "live" + liveScore (resultado parcial que
+ *     se refresca en cada corrida; NO asigna puntos). El cierre/revelacion de
+ *     pronosticos ya no depende de esto: pasa a la hora exacta del kickoff.
  *
  * Credenciales:
  *   FOOTBALL_DATA_API_KEY     token de football-data.org (obligatorio)
@@ -76,6 +77,7 @@ async function finishMatch(
   batch.update(db.collection('matches').doc(matchId), {
     result: { homeGoals, awayGoals },
     status: 'finished',
+    liveScore: null, // ya no hay parcial: el resultado final es `result`
   });
 
   let evaluated = 0;
@@ -163,10 +165,18 @@ async function main() {
         `OK: ${homeTla} ${home}-${away} ${awayTla} (${ours.id}) -> finished | ` +
           `evaluados: ${evaluated}${skipped ? ` | omitidos: ${skipped}` : ''}`
       );
-    } else if (ours.status === 'upcoming') {
-      await db.collection('matches').doc(ours.id).update({ status: 'live' });
+    } else {
+      // IN_PLAY / PAUSED: marca "live" y refresca el resultado parcial en cada
+      // corrida (no asigna puntos: eso solo pasa con FINISHED). El marcador en
+      // juego viene en score.fullTime; null al inicio -> 0.
+      const home = am.score.fullTime.home ?? 0;
+      const away = am.score.fullTime.away ?? 0;
+      await db.collection('matches').doc(ours.id).update({
+        status: 'live',
+        liveScore: { homeGoals: home, awayGoals: away },
+      });
       live++;
-      console.log(`EN VIVO: ${homeTla} vs ${awayTla} (${ours.id})`);
+      console.log(`EN VIVO: ${homeTla} ${home}-${away} ${awayTla} (${ours.id})`);
     }
   }
 
