@@ -41,7 +41,15 @@ function matchKey(homeCode: string, awayCode: string, utcDate: Date): string {
 }
 
 async function fetchApiMatches(apiKey: string): Promise<ApiMatch[]> {
-  const res = await fetch(API_URL, { headers: { 'X-Auth-Token': apiKey } });
+  // `cache: 'no-store'` es CRITICO: sin esto, en el route handler de Vercel el
+  // Data Cache de Next.js cachea esta respuesta y el cron termina evaluando un
+  // snapshot viejo de la API (el partido sigue "upcoming" / el parcial clavado)
+  // aunque corra cada 5 min y devuelva 200. El CLI local no pasa por ese cache,
+  // por eso alli siempre se ven datos frescos. Forzamos siempre datos en vivo.
+  const res = await fetch(API_URL, {
+    headers: { 'X-Auth-Token': apiKey },
+    cache: 'no-store',
+  });
   if (!res.ok) {
     throw new Error(`football-data.org ${res.status}: ${await res.text()}`);
   }
