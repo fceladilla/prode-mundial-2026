@@ -9,12 +9,14 @@ import {
   query,
 } from 'firebase/firestore';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { getDbClient } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/hooks/useLanguage';
 import { formatDisplayName } from '@/lib/formatName';
 import type { LeaderboardUser } from '@/lib/types';
 import { Avatar } from './Avatar';
+import { AnimatedNumber } from './AnimatedNumber';
 
 export function LeaderboardTable({ limitRows = 50 }: { limitRows?: number }) {
   const { user } = useAuth();
@@ -46,7 +48,13 @@ export function LeaderboardTable({ limitRows = 50 }: { limitRows?: number }) {
       {rows.map((r, i) => {
         const isMe = user?.uid === r.id;
         return (
-          <li key={r.id}>
+          <motion.li
+            key={r.id}
+            layout
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ layout: { type: 'spring', stiffness: 500, damping: 40 } }}
+          >
             <Link
               href={`/perfil/${r.id}`}
               className={`flex items-center gap-3 rounded-md px-2 py-1.5 transition hover:ring-1 hover:ring-oro/40 ${
@@ -60,11 +68,12 @@ export function LeaderboardTable({ limitRows = 50 }: { limitRows?: number }) {
               <span className="min-w-0 flex-1 truncate text-sm">
                 {formatDisplayName(r.displayName)}
               </span>
-              <span className="font-display font-bold text-oro">
-                {r.totalPoints ?? 0}
-              </span>
+              <AnimatedNumber
+                value={r.totalPoints ?? 0}
+                className="font-display font-bold text-oro"
+              />
             </Link>
-          </li>
+          </motion.li>
         );
       })}
     </ol>

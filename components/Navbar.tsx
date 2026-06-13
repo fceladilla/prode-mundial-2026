@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useUnreadComments } from '@/hooks/useUnreadComments';
@@ -50,6 +52,39 @@ function LangSwitcher({ onSelect }: { onSelect?: () => void }) {
   );
 }
 
+// Link de navegacion que se resalta (oro + negrita) cuando su seccion esta
+// activa, segun la ruta actual. `exact` para "/" (si no, matchea con todo).
+function NavLink({
+  href,
+  exact = false,
+  onClick,
+  baseClassName,
+  activeClassName,
+  inactiveClassName,
+  children,
+}: {
+  href: string;
+  exact?: boolean;
+  onClick?: () => void;
+  baseClassName: string;
+  activeClassName: string;
+  inactiveClassName: string;
+  children: ReactNode;
+}) {
+  const pathname = usePathname();
+  const active = exact ? pathname === href : pathname.startsWith(href);
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      aria-current={active ? 'page' : undefined}
+      className={`${baseClassName} ${active ? activeClassName : inactiveClassName}`}
+    >
+      {children}
+    </Link>
+  );
+}
+
 export function Navbar() {
   const { user, loading, signIn, logout } = useAuth();
   const { t } = useLanguage();
@@ -69,17 +104,33 @@ export function Navbar() {
           >
             PRODE <span className="text-white">2026</span>
           </Link>
-          <div className="hidden gap-4 text-sm text-suave sm:flex">
-            <Link href="/" className="hover:text-white">
+          <div className="hidden gap-4 text-sm sm:flex">
+            <NavLink
+              href="/"
+              exact
+              baseClassName="transition-colors"
+              activeClassName="font-bold text-oro"
+              inactiveClassName="text-suave hover:text-white"
+            >
               {t('navFixture')}
-            </Link>
-            <Link href="/ranking" className="hover:text-white">
+            </NavLink>
+            <NavLink
+              href="/ranking"
+              baseClassName="transition-colors"
+              activeClassName="font-bold text-oro"
+              inactiveClassName="text-suave hover:text-white"
+            >
               {t('navRanking')}
-            </Link>
-            <Link href="/foro" className="hover:text-white">
+            </NavLink>
+            <NavLink
+              href="/foro"
+              baseClassName="transition-colors"
+              activeClassName="font-bold text-oro"
+              inactiveClassName="text-suave hover:text-white"
+            >
               {t('navForum')}
               <ForumBadge />
-            </Link>
+            </NavLink>
           </div>
         </div>
 
@@ -108,12 +159,14 @@ export function Navbar() {
               </button>
             </>
           ) : (
-            <button
+            <motion.button
               onClick={() => signIn()}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.95 }}
               className="rounded-md bg-oro px-4 py-2 text-sm font-semibold text-negro transition hover:bg-oro/90"
             >
               {t('signIn')}
-            </button>
+            </motion.button>
           )}
         </div>
 
@@ -187,28 +240,35 @@ export function Navbar() {
       {menuOpen && (
         <div className="border-t border-white/10 bg-negro px-4 py-3 sm:hidden">
           <div className="flex flex-col gap-1 text-sm">
-            <Link
+            <NavLink
               href="/"
+              exact
               onClick={closeMenu}
-              className="rounded-md px-2 py-2 text-suave hover:bg-white/5 hover:text-white"
+              baseClassName="rounded-md px-2 py-2 transition-colors"
+              activeClassName="bg-oro/10 font-bold text-oro"
+              inactiveClassName="text-suave hover:bg-white/5 hover:text-white"
             >
               {t('navFixture')}
-            </Link>
-            <Link
+            </NavLink>
+            <NavLink
               href="/ranking"
               onClick={closeMenu}
-              className="rounded-md px-2 py-2 text-suave hover:bg-white/5 hover:text-white"
+              baseClassName="rounded-md px-2 py-2 transition-colors"
+              activeClassName="bg-oro/10 font-bold text-oro"
+              inactiveClassName="text-suave hover:bg-white/5 hover:text-white"
             >
               {t('navRanking')}
-            </Link>
-            <Link
+            </NavLink>
+            <NavLink
               href="/foro"
               onClick={closeMenu}
-              className="rounded-md px-2 py-2 text-suave hover:bg-white/5 hover:text-white"
+              baseClassName="rounded-md px-2 py-2 transition-colors"
+              activeClassName="bg-oro/10 font-bold text-oro"
+              inactiveClassName="text-suave hover:bg-white/5 hover:text-white"
             >
               {t('navForum')}
               <ForumBadge />
-            </Link>
+            </NavLink>
           </div>
 
           <div className="mt-3 border-t border-white/10 pt-3">
@@ -239,15 +299,16 @@ export function Navbar() {
                 </button>
               </div>
             ) : (
-              <button
+              <motion.button
                 onClick={() => {
                   closeMenu();
                   signIn();
                 }}
+                whileTap={{ scale: 0.97 }}
                 className="w-full rounded-md bg-oro px-4 py-2 text-sm font-semibold text-negro transition hover:bg-oro/90"
               >
                 {t('signIn')}
-              </button>
+              </motion.button>
             )}
           </div>
         </div>

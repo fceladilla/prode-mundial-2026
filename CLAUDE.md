@@ -52,7 +52,7 @@ app/
 
 Planned but **not yet built** (see SOP §8): `partido/[id]/page.tsx` (match detail). Score entry happens inline on `MatchCard`, which also hosts collapsible per-match comments (`CommentSection`) and the all-players predictions panel (`MatchPredictionsPanel`, post-kickoff only).
 
-Components live flat under `components/` (`Navbar`, `Sidebar`, `MatchCard`, `LeaderboardTable`, `Avatar`, `SearchBar`, `CommentSection`, `MatchPredictionsPanel`), not in the nested subfolders the SOP proposes. `SearchBar` (in the Navbar) filters matches client-side and prefix-searches users via the `displayNameLower` field (written/backfilled on sign-in in `hooks/useAuth.tsx`).
+Components live flat under `components/` (`Navbar`, `Sidebar`, `MatchCard`, `LeaderboardTable`, `Avatar`, `SearchBar`, `CommentSection`, `MatchPredictionsPanel`, `FixtureFilters`, `Flag`, `AnimatedNumber`), not in the nested subfolders the SOP proposes. `SearchBar` (in the Navbar) filters matches client-side and prefix-searches users via the `displayNameLower` field (written/backfilled on sign-in in `hooks/useAuth.tsx`).
 
 ### Internationalization (i18n)
 
@@ -132,4 +132,4 @@ Dark-mode-first palette:
 | `#1E1E1E` | Gris Carbón | Cards, panels |
 | `#2D6A4F` | Verde Estadio | Finished match indicators |
 
-Framer Motion is used for page transitions (`AnimatePresence` in `layout.tsx`), staggered match card entrances, and `AnimatedNumber` for live point changes.
+Framer Motion drives the interaction polish: staggered `MatchCard` entrances; `AnimatedNumber` (`components/AnimatedNumber.tsx`) for numbers that roll to their new value (live scoreboard, `+X pts`, leaderboard totals — it skips the first render and only animates on change); tactile `whileTap`/`whileHover` on the Save / sign-in buttons and fixture filter chips; the `LeaderboardTable` rows reorder with a `layout` spring as points change; the active fixture filter has a sliding `layoutId` pill. The active nav section is highlighted (oro + bold) in the `Navbar` via `usePathname` (`NavLink`).

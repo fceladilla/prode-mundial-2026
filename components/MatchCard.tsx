@@ -9,6 +9,7 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { useUnreadComments } from '@/hooks/useUnreadComments';
 import type { TranslationKey } from '@/lib/i18n';
 import { Flag } from './Flag';
+import { AnimatedNumber } from './AnimatedNumber';
 import { CommentSection } from './CommentSection';
 import { MatchPredictionsPanel } from './MatchPredictionsPanel';
 import { formatLocalKickoff } from '@/lib/time';
@@ -163,8 +164,8 @@ export function MatchCard({
 
         {shownScore ? (
           <div className="text-center font-display leading-tight">
-            <div className="text-3xl font-bold">{shownScore.homeGoals}</div>
-            <div className="text-3xl font-bold">{shownScore.awayGoals}</div>
+            <AnimatedNumber value={shownScore.homeGoals} className="block text-3xl font-bold" />
+            <AnimatedNumber value={shownScore.awayGoals} className="block text-3xl font-bold" />
             {match.status === 'live' && (
               <div className="mt-1 animate-pulse text-[10px] font-bold uppercase text-rojo">
                 {t('partialScore')}
@@ -209,13 +210,15 @@ export function MatchCard({
               {prediction.predictedAwayGoals}
             </span>
           )}
-          <button
+          <motion.button
             onClick={save}
             disabled={saving || home === '' || away === ''}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.95 }}
             className="rounded-md bg-oro px-4 py-1.5 text-sm font-semibold text-negro transition hover:bg-oro/90 disabled:opacity-40"
           >
             {saved ? t('savedOk') : saving ? t('saving') : t('save')}
-          </button>
+          </motion.button>
         </div>
       )}
 
@@ -233,7 +236,7 @@ export function MatchCard({
             {prediction.predictedAwayGoals} &middot;{' '}
           </span>
           <span className="font-display font-bold text-oro">
-            +{prediction.pointsEarned} pts
+            +<AnimatedNumber value={prediction.pointsEarned} /> pts
           </span>
         </div>
       )}
