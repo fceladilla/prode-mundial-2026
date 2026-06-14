@@ -84,6 +84,8 @@ const es = {
   signInToSeeComments: 'Inicia sesion para ver el foro y los comentarios.',
   likeButton: 'Me gusta',
   unlikeButton: 'Quitar me gusta',
+  likedByTitle: 'Les gusta',
+  loadingLikers: 'Cargando...',
   unreadBadge: '{count} comentarios nuevos',
 
   // Leaderboard / Sidebar / Ranking
@@ -200,6 +202,8 @@ const ca: Dict = {
   signInToSeeComments: 'Inicia sessió per veure el fòrum i els comentaris.',
   likeButton: "M'agrada",
   unlikeButton: "Treure el m'agrada",
+  likedByTitle: 'Els agrada',
+  loadingLikers: 'Carregant...',
   unreadBadge: '{count} comentaris nous',
 
   noPlayersYet: 'Encara no hi ha jugadors.',
@@ -307,6 +311,8 @@ const en: Dict = {
   signInToSeeComments: 'Sign in to see the forum and comments.',
   likeButton: 'Like',
   unlikeButton: 'Unlike',
+  likedByTitle: 'Liked by',
+  loadingLikers: 'Loading...',
   unreadBadge: '{count} new comments',
 
   noPlayersYet: 'No players yet.',

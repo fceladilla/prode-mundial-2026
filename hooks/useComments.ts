@@ -7,6 +7,7 @@ import {
   arrayUnion,
   collection,
   doc,
+  getDoc,
   limit,
   onSnapshot,
   orderBy,
@@ -107,4 +108,44 @@ export async function toggleLike(commentId: string, uid: string, liked: boolean)
   await updateDoc(doc(getDbClient(), 'comments', commentId), {
     likes: liked ? arrayRemove(uid) : arrayUnion(uid),
   });
+}
+
+export interface Liker {
+  id: string;
+  displayName: string;
+  photoURL: string;
+}
+
+// Cache en memoria: los perfiles casi no cambian y un mismo usuario suele
+// aparecer en varios likes, asi que evita releer el mismo doc por popover.
+const likerCache = new Map<string, Liker>();
+
+/**
+ * Resuelve los uid del array `likes` a nombre/avatar leyendo `users/{uid}`
+ * (coleccion de lectura publica). Las lecturas van en paralelo y se cachean.
+ * Mantiene el orden recibido y descarta usuarios borrados/ilegibles.
+ */
+export async function fetchLikers(uids: string[]): Promise<Liker[]> {
+  const db = getDbClient();
+  const results = await Promise.all(
+    uids.map(async (uid) => {
+      const cached = likerCache.get(uid);
+      if (cached) return cached;
+      try {
+        const snap = await getDoc(doc(db, 'users', uid));
+        if (!snap.exists()) return null;
+        const d = snap.data();
+        const liker: Liker = {
+          id: uid,
+          displayName: d.displayName ?? 'Jugador',
+          photoURL: d.photoURL ?? '',
+        };
+        likerCache.set(uid, liker);
+        return liker;
+      } catch {
+        return null;
+      }
+    })
+  );
+  return results.filter((r): r is Liker => r !== null);
 }

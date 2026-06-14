@@ -1,17 +1,94 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/hooks/useLanguage';
-import { postComment, toggleLike, useComments } from '@/hooks/useComments';
+import {
+  fetchLikers,
+  postComment,
+  toggleLike,
+  useComments,
+  type Liker,
+} from '@/hooks/useComments';
 import { useUnreadComments } from '@/hooks/useUnreadComments';
 import { formatDisplayName } from '@/lib/formatName';
 import { formatRelativeTime } from '@/lib/formatRelativeTime';
 import { Avatar } from './Avatar';
 
 const MAX_CHARS = 500;
+
+function LikersPopover({
+  likes,
+  onClose,
+}: {
+  likes: string[];
+  onClose: () => void;
+}) {
+  const { t } = useLanguage();
+  const [likers, setLikers] = useState<Liker[] | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchLikers(likes).then((r) => {
+      if (!cancelled) setLikers(r);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [likes]);
+
+  // Cierra al tocar fuera o con Escape.
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [onClose]);
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="absolute left-0 top-6 z-20 w-56 rounded-lg border border-white/10 bg-carbon p-2 shadow-xl"
+    >
+      <p className="mb-1 px-1 font-display text-xs font-semibold text-oro">
+        {t('likedByTitle')}
+      </p>
+      {likers === null ? (
+        <p className="px-1 py-1 text-xs text-suave">{t('loadingLikers')}</p>
+      ) : (
+        <ul className="max-h-48 space-y-0.5 overflow-y-auto">
+          {likers.map((u) => (
+            <li key={u.id}>
+              <Link
+                href={`/perfil/${u.id}`}
+                onClick={onClose}
+                className="flex items-center gap-2 rounded-md px-1 py-1 hover:bg-white/5"
+              >
+                <Avatar src={u.photoURL} name={u.displayName} size={24} />
+                <span className="truncate font-noto text-xs text-white/90">
+                  {formatDisplayName(u.displayName)}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </motion.div>
+  );
+}
 
 function LikeButton({
   commentId,
@@ -24,6 +101,7 @@ function LikeButton({
 }) {
   const { t } = useLanguage();
   const [busy, setBusy] = useState(false);
+  const [showLikers, setShowLikers] = useState(false);
   const liked = likes.includes(uid);
 
   const toggle = async () => {
@@ -40,20 +118,34 @@ function LikeButton({
   };
 
   return (
-    <button
-      onClick={toggle}
-      disabled={busy}
-      aria-label={liked ? t('unlikeButton') : t('likeButton')}
-      aria-pressed={liked}
-      className={`mt-1 flex items-center gap-1 text-xs transition ${
-        liked ? 'text-oro' : 'text-suave hover:text-oro'
-      }`}
-    >
-      <span aria-hidden="true">{liked ? '♥' : '♡'}</span>
+    <div className="relative mt-1 flex items-center gap-2 text-xs">
+      <button
+        onClick={toggle}
+        disabled={busy}
+        aria-label={liked ? t('unlikeButton') : t('likeButton')}
+        aria-pressed={liked}
+        className={`transition ${
+          liked ? 'text-oro' : 'text-suave hover:text-oro'
+        }`}
+      >
+        <span aria-hidden="true">{liked ? '♥' : '♡'}</span>
+      </button>
       {likes.length > 0 && (
-        <span className="font-semibold">{likes.length}</span>
+        <button
+          onClick={() => setShowLikers((v) => !v)}
+          aria-expanded={showLikers}
+          aria-label={t('likedByTitle')}
+          className={`font-semibold transition ${
+            showLikers ? 'text-oro' : 'text-suave hover:text-oro'
+          }`}
+        >
+          {likes.length}
+        </button>
       )}
-    </button>
+      {showLikers && likes.length > 0 && (
+        <LikersPopover likes={likes} onClose={() => setShowLikers(false)} />
+      )}
+    </div>
   );
 }
 
