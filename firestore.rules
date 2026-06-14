@@ -61,10 +61,10 @@ service cloud.firestore {
 
     // ---- COMMENTS ----
     // Foro global (matchId == null) y comentarios por partido. Solo usuarios
-    // autenticados leen y crean (y solo a su propio nombre). El texto es
-    // inmutable; el unico update permitido es dar/quitar "me gusta", que
-    // agrega o saca exactamente el uid propio de la lista `likes`.
-    // Borrar solo el propio.
+    // autenticados leen y crean (y solo a su propio nombre). Hay dos updates
+    // permitidos: (1) dar/quitar "me gusta" (cualquier usuario, solo toca su
+    // propio uid en `likes`); (2) el autor edita su comentario (solo
+    // text/mentions/edited). Borrar solo el propio.
     match /comments/{commentId} {
       // Valida que el update solo toque `likes` y que el cambio sea
       // exactamente el uid del que pide (sin tocar likes ajenos).
@@ -84,11 +84,24 @@ service cloud.firestore {
         && request.resource.data.text is string
         && request.resource.data.text.size() > 0
         && request.resource.data.text.size() <= 500
-        && request.resource.data.get('likes', []) == [];
+        && request.resource.data.get('likes', []) == []
+        && request.resource.data.get('mentions', []) is list
+        && request.resource.data.get('mentions', []).size() <= 20
+        && (request.resource.data.get('replyTo', null) == null
+            || request.resource.data.replyTo is map);
       allow update: if request.auth != null
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])
         && request.resource.data.likes is list
         && likeToggleOk();
+      allow update: if request.auth != null
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['text', 'mentions', 'edited'])
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 500
+        && request.resource.data.mentions is list
+        && request.resource.data.mentions.size() <= 20;
       allow delete: if request.auth != null
         && resource.data.userId == request.auth.uid;
     }

@@ -6,6 +6,7 @@ import {
   arrayRemove,
   arrayUnion,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   limit,
@@ -19,6 +20,14 @@ import {
 import { getDbClient } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 
+/** Cita del comentario al que se responde (snapshot inmutable). */
+export interface ReplyRef {
+  id: string;
+  userId: string;
+  displayName: string;
+  text: string;
+}
+
 export interface Comment {
   id: string;
   userId: string;
@@ -28,6 +37,26 @@ export interface Comment {
   createdAt: Date | null;
   matchId: string | null;
   likes: string[];
+  mentions: string[];
+  replyTo: ReplyRef | null;
+  edited: boolean;
+}
+
+// Las menciones se codifican dentro del texto como @[Nombre](uid). Es
+// inequivoco (el uid desambigua nombres repetidos y soporta espacios) y se
+// parsea facil al renderizar; el array `mentions` se deriva de aca.
+const MENTION_RE = /@\[[^\]]+\]\(([^)]+)\)/g;
+
+/** uids unicos mencionados en el texto. */
+export function parseMentions(text: string): string[] {
+  const ids = new Set<string>();
+  for (const m of text.matchAll(MENTION_RE)) ids.add(m[1]);
+  return [...ids];
+}
+
+/** Reemplaza @[Nombre](uid) por @Nombre, para previews/citas en texto plano. */
+export function stripMentionMarkup(text: string): string {
+  return text.replace(/@\[([^\]]+)\]\([^)]+\)/g, '@$1');
 }
 
 /**
@@ -73,6 +102,9 @@ export function useComments(matchId: string | null = null, maxComments = 100) {
               createdAt: d.createdAt?.toDate() ?? null,
               matchId: d.matchId ?? null,
               likes: d.likes ?? [],
+              mentions: d.mentions ?? [],
+              replyTo: d.replyTo ?? null,
+              edited: d.edited ?? false,
             };
           })
         );
@@ -90,17 +122,39 @@ export async function postComment(
   displayName: string,
   photoURL: string,
   text: string,
-  matchId: string | null = null
+  matchId: string | null = null,
+  replyTo: ReplyRef | null = null
 ) {
+  const trimmed = text.trim().slice(0, 500);
   await addDoc(collection(getDbClient(), 'comments'), {
     userId,
     displayName,
     photoURL,
-    text: text.trim().slice(0, 500),
+    text: trimmed,
     matchId,
     likes: [],
+    mentions: parseMentions(trimmed),
+    replyTo,
     createdAt: serverTimestamp(),
   });
+}
+
+/**
+ * Edita el texto del propio comentario. Re-deriva las menciones y marca
+ * `edited`. Las reglas solo permiten al autor tocar text/mentions/edited.
+ */
+export async function editComment(commentId: string, text: string) {
+  const trimmed = text.trim().slice(0, 500);
+  await updateDoc(doc(getDbClient(), 'comments', commentId), {
+    text: trimmed,
+    mentions: parseMentions(trimmed),
+    edited: true,
+  });
+}
+
+/** Borra el propio comentario (las reglas exigen ser el autor). */
+export async function deleteComment(commentId: string) {
+  await deleteDoc(doc(getDbClient(), 'comments', commentId));
 }
 
 /** Da o quita el "me gusta" del usuario sobre un comentario. */
