@@ -1,6 +1,12 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, type Auth } from 'firebase/auth';
-import { getFirestore, type Firestore } from 'firebase/firestore';
+import {
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  type Firestore,
+} from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -28,8 +34,28 @@ export function getAuthClient(): Auth {
   return authInstance;
 }
 
+/**
+ * Firestore con **cache local persistente** (IndexedDB). Es la mayor palanca
+ * para no agotar la cuota gratuita de lecturas: con el cache persistente, las
+ * queries `onSnapshot` se sirven primero desde IndexedDB y al recargar/volver
+ * solo se leen del servidor los documentos que cambiaron (resume tokens), en
+ * vez de releer todo el fixture / posiciones / comentarios en cada carga.
+ * `persistentMultipleTabManager` coordina varias pestanas abiertas a la vez.
+ * Si el navegador no soporta IndexedDB (modo privado, etc.) cae a memoria.
+ */
 export function getDbClient(): Firestore {
-  if (!dbInstance) dbInstance = getFirestore(getFirebaseApp());
+  if (dbInstance) return dbInstance;
+  try {
+    dbInstance = initializeFirestore(getFirebaseApp(), {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager(),
+      }),
+    });
+  } catch {
+    // Ya estaba inicializado (HMR) o el entorno no permite cache persistente:
+    // usamos la instancia por defecto (cache en memoria).
+    dbInstance = getFirestore(getFirebaseApp());
+  }
   return dbInstance;
 }
 
