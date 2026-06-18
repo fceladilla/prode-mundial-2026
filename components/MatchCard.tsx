@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { getDbClient } from '@/lib/firebase';
@@ -12,6 +12,7 @@ import { Flag } from './Flag';
 import { AnimatedNumber } from './AnimatedNumber';
 import { CommentSection } from './CommentSection';
 import { MatchPredictionsPanel } from './MatchPredictionsPanel';
+import { Confetti } from './Confetti';
 import { formatLocalKickoff } from '@/lib/time';
 import type { Match, Prediction } from '@/lib/types';
 
@@ -58,6 +59,24 @@ export function MatchCard({
       setAway(String(prediction.predictedAwayGoals));
     }
   }, [prediction]);
+
+  // Celebracion al evaluarse el pronostico EN VIVO. Solo dispara en la
+  // transicion evaluated false->true mientras la pagina esta abierta; NO al
+  // cargar partidos ya jugados (el ref arranca con el valor inicial). Sin esto,
+  // entrar a la home haria estallar confeti por cada acierto pasado.
+  const [celebrate, setCelebrate] = useState(false);
+  const wasEvaluated = useRef(prediction?.evaluated ?? false);
+  const isExact = prediction?.evaluated === true && prediction.pointsEarned === 5;
+  useEffect(() => {
+    const nowEval = prediction?.evaluated ?? false;
+    if (nowEval && !wasEvaluated.current) {
+      setCelebrate(true);
+      const id = setTimeout(() => setCelebrate(false), 1300);
+      wasEvaluated.current = nowEval;
+      return () => clearTimeout(id);
+    }
+    wasEvaluated.current = nowEval;
+  }, [prediction?.evaluated]);
 
   // Bloqueo: el pronostico se cierra cuando el partido empieza (por hora) o
   // cuando ya no esta "upcoming" (resultado cargado).
@@ -133,11 +152,23 @@ export function MatchCard({
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.97 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: Math.min(index * 0.04, 0.4), duration: 0.25 }}
-      className="rounded-xl border border-white/10 bg-carbon p-4"
+      animate={{
+        opacity: 1,
+        scale: 1,
+        // Destello dorado al guardar el pronostico: confirmacion visual sin
+        // tener que leer el texto del boton.
+        boxShadow: saved
+          ? '0 0 0 2px #C9A84C, 0 0 18px rgba(201,168,76,0.35)'
+          : '0 0 0 0 rgba(201,168,76,0)',
+      }}
+      transition={{
+        default: { delay: Math.min(index * 0.04, 0.4), duration: 0.25 },
+        boxShadow: { duration: 0.35 },
+      }}
+      className="relative rounded-xl border-2 border-white/15 bg-carbon p-4"
       id={`match-${match.id}`}
     >
+      {celebrate && isExact && <Confetti />}
       <div className="mb-3 flex items-center justify-between text-xs text-suave">
         <span title={`ARG ${match.scheduledAtARG} · ESP ${match.scheduledAtESP}`}>
           {kickoffLabel} &middot; {match.venue.city}
@@ -209,15 +240,26 @@ export function MatchCard({
       )}
 
       {match.status === 'finished' && prediction?.evaluated && (
-        <div className="mt-3 border-t border-white/10 pt-2 text-right text-sm">
+        <motion.div
+          initial={{ opacity: 0, y: 4 }}
+          animate={
+            celebrate
+              ? { opacity: 1, y: 0, scale: [1, 1.08, 1] }
+              : { opacity: 1, y: 0 }
+          }
+          transition={{ duration: 0.4 }}
+          className="mt-3 border-t border-white/10 pt-2 text-right text-sm"
+        >
           <span className="text-suave">
             {t('yourPrediction')} {prediction.predictedHomeGoals}-
             {prediction.predictedAwayGoals} &middot;{' '}
           </span>
-          <span className="font-display font-bold text-oro">
+          <span
+            className={`font-display font-bold ${isExact ? 'text-oro' : 'text-white'}`}
+          >
             +<AnimatedNumber value={prediction.pointsEarned} /> pts
           </span>
-        </div>
+        </motion.div>
       )}
 
       {!user && !locked && (

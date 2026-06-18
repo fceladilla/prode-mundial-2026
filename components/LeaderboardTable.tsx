@@ -18,6 +18,14 @@ import type { LeaderboardUser } from '@/lib/types';
 import { Avatar } from './Avatar';
 import { AnimatedNumber } from './AnimatedNumber';
 
+// Estilo del podio (1ro/2do/3ro): medalla + anillo y fondo con el color del
+// metal. El oro reusa el token de marca; plata/bronce van con la paleta default.
+const PODIUM = [
+  { medal: '🥇', ring: 'ring-oro/60', bg: 'bg-oro/10', glow: 'shadow-[0_0_14px_rgba(201,168,76,0.25)]' },
+  { medal: '🥈', ring: 'ring-slate-300/50', bg: 'bg-slate-300/5', glow: '' },
+  { medal: '🥉', ring: 'ring-amber-600/50', bg: 'bg-amber-700/10', glow: '' },
+] as const;
+
 export function LeaderboardTable({ limitRows = 50 }: { limitRows?: number }) {
   const { user } = useAuth();
   const { t } = useLanguage();
@@ -47,6 +55,13 @@ export function LeaderboardTable({ limitRows = 50 }: { limitRows?: number }) {
     <ol className="space-y-1">
       {rows.map((r, i) => {
         const isMe = user?.uid === r.id;
+        const podium = i < 3 ? PODIUM[i] : null;
+        // El resaltado "soy yo" tiene prioridad; si no, aplica el podio.
+        const rowStyle = isMe
+          ? 'bg-oro/15 ring-1 ring-oro/40'
+          : podium
+            ? `${podium.bg} ring-1 ${podium.ring} ${podium.glow}`
+            : 'bg-carbon';
         return (
           <motion.li
             key={r.id}
@@ -57,12 +72,10 @@ export function LeaderboardTable({ limitRows = 50 }: { limitRows?: number }) {
           >
             <Link
               href={`/perfil/${r.id}`}
-              className={`flex items-center gap-3 rounded-md px-2 py-1.5 transition hover:ring-1 hover:ring-oro/40 ${
-                isMe ? 'bg-oro/15 ring-1 ring-oro/40' : 'bg-carbon'
-              }`}
+              className={`flex items-center gap-3 rounded-md px-2 py-1.5 transition hover:ring-1 hover:ring-oro/40 ${rowStyle}`}
             >
               <span className="w-5 text-center font-display font-bold text-suave">
-                {i + 1}
+                {podium ? <span className="text-base leading-none">{podium.medal}</span> : i + 1}
               </span>
               <Avatar src={r.photoURL} name={r.displayName} size={28} />
               <span className="min-w-0 flex-1 truncate text-sm">

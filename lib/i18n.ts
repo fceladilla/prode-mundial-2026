@@ -139,6 +139,17 @@ const es = {
   stageThird: 'Tercer Puesto',
   stageFinal: 'Final',
 
+  // Hero / countdown del proximo partido
+  heroNextMatch: 'Proximo partido',
+  heroToday: 'Partidos de hoy',
+  heroLiveNow: '¡Esta en juego!',
+  heroEditPrediction: 'Editar pronostico',
+  heroViewMatch: 'Ver partido',
+  heroUnitDays: 'dias',
+  heroUnitHours: 'hs',
+  heroUnitMin: 'min',
+  heroUnitSec: 'seg',
+
   // Tiempo relativo
   now: 'ahora',
   minutesAgo: 'hace {n} min',
@@ -261,6 +272,16 @@ const ca: Dict = {
   stageThird: 'Tercer lloc',
   stageFinal: 'Final',
 
+  heroNextMatch: 'Proper partit',
+  heroToday: "Partits d'avui",
+  heroLiveNow: "S'està jugant!",
+  heroEditPrediction: 'Edita el pronòstic',
+  heroViewMatch: 'Veure el partit',
+  heroUnitDays: 'dies',
+  heroUnitHours: 'h',
+  heroUnitMin: 'min',
+  heroUnitSec: 'seg',
+
   now: 'ara',
   minutesAgo: 'fa {n} min',
   hoursAgo: 'fa {n} h',
@@ -378,6 +399,16 @@ const en: Dict = {
   stageSF: 'Semi-final',
   stageThird: 'Third place',
   stageFinal: 'Final',
+
+  heroNextMatch: 'Next match',
+  heroToday: "Today's matches",
+  heroLiveNow: 'Kicking off now!',
+  heroEditPrediction: 'Edit prediction',
+  heroViewMatch: 'View match',
+  heroUnitDays: 'days',
+  heroUnitHours: 'h',
+  heroUnitMin: 'min',
+  heroUnitSec: 'sec',
 
   now: 'now',
   minutesAgo: '{n} min ago',

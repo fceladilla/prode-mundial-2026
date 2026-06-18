@@ -7,7 +7,12 @@
 }
 
 body {
+  /* Gradiente azul acero -> negro -> carbon, fijo al viewport para que cubra
+     toda la pagina sin repetirse al hacer scroll. Misma estetica que el hero. */
+  background: linear-gradient(to bottom right, #1a3a5c, #0a0a0a 50%, #1e1e1e);
+  background-attachment: fixed;
   background-color: #0a0a0a;
+  min-height: 100vh;
   color: #ffffff;
   font-family: var(--font-noto), system-ui, sans-serif;
 }

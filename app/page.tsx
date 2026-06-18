@@ -17,7 +17,9 @@ import { LOCALE } from '@/lib/i18n';
 import { argDateKey, argDateLabel } from '@/lib/dates';
 import type { Match, Prediction } from '@/lib/types';
 import { MatchCard } from '@/components/MatchCard';
+import { MatchCardSkeleton } from '@/components/MatchCardSkeleton';
 import { FixtureFilters } from '@/components/FixtureFilters';
+import { Hero } from '@/components/Hero';
 
 function passesFilter(m: Match, view: string): boolean {
   switch (view) {
@@ -141,7 +143,7 @@ function FixtureContent() {
 
   return (
     <div>
-      <h1 className="mb-1 font-display text-3xl font-bold">{t('homeTitle')}</h1>
+      <Hero matches={matches} />
       <p className="mb-4 text-sm text-suave">
         {user ? t('homeTaglineUser') : t('homeTaglineGuest')}
       </p>
@@ -164,7 +166,11 @@ function FixtureContent() {
       )}
 
       {loading ? (
-        <p className="text-suave">{t('loadingMatches')}</p>
+        <div className="grid gap-3" aria-busy="true" aria-label={t('loadingMatches')}>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <MatchCardSkeleton key={i} />
+          ))}
+        </div>
       ) : matches.length === 0 ? (
         <div className="rounded-xl border border-white/10 bg-carbon p-6 text-suave">
           {t('noMatchesSeeded')} <code className="text-oro">npm run seed</code>.
