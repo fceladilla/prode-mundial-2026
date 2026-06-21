@@ -9,6 +9,7 @@
     "lint": "next lint",
     "seed": "tsx scripts/seedMatches.ts",
     "set-result": "tsx scripts/setResult.ts",
+    "correct-result": "tsx scripts/correctResult.ts",
     "sync-results": "tsx scripts/syncResults.ts",
     "diag-sync": "tsx scripts/diagSync.ts",
     "add-prediction": "tsx scripts/addPrediction.ts",
