@@ -37,6 +37,9 @@ const es = {
   loadingMatches: 'Cargando partidos...',
   noMatchesSeeded: 'Todavia no hay partidos cargados. Ejecuta',
   noMatchesInView: 'No hay partidos en esta vista.',
+  labelToday: 'Hoy',
+  labelYesterday: 'Ayer',
+  upcomingMatches: 'Próximos',
 
   // Filtros del fixture
   filterAll: 'Todos',
@@ -180,6 +183,9 @@ const ca: Dict = {
   loadingMatches: 'Carregant partits...',
   noMatchesSeeded: 'Encara no hi ha partits carregats. Executa',
   noMatchesInView: 'No hi ha partits en aquesta vista.',
+  labelToday: 'Avui',
+  labelYesterday: 'Ahir',
+  upcomingMatches: 'Pròxims',
 
   filterAll: 'Tots',
   filterGroups: 'Grups',
@@ -308,6 +314,9 @@ const en: Dict = {
   loadingMatches: 'Loading matches...',
   noMatchesSeeded: 'No matches loaded yet. Run',
   noMatchesInView: 'No matches in this view.',
+  labelToday: 'Today',
+  labelYesterday: 'Yesterday',
+  upcomingMatches: 'Upcoming',
 
   filterAll: 'All',
   filterGroups: 'Groups',
