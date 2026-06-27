@@ -20,6 +20,27 @@ import { MatchCard } from '@/components/MatchCard';
 import { MatchCardSkeleton } from '@/components/MatchCardSkeleton';
 import { FixtureFilters } from '@/components/FixtureFilters';
 import { Hero } from '@/components/Hero';
+import { StandingsTable, useStandings } from '@/components/StandingsTable';
+
+// Tabla del grupo de un pais, con su fila resaltada. Usa el hook solo cuando se
+// monta (es decir, solo cuando hay filtro por equipo), asi no agrega un fetch a
+// /api/standings en la carga normal del home.
+function TeamGroupStandings({
+  teamCode,
+  group,
+}: {
+  teamCode: string;
+  group: string;
+}) {
+  const { groups } = useStandings();
+  const g = groups?.find((x) => x.id.toUpperCase() === group.toUpperCase());
+  if (!g) return null;
+  return (
+    <div className="mb-6 lg:max-w-xl">
+      <StandingsTable group={g} highlightCode={teamCode} />
+    </div>
+  );
+}
 
 function passesFilter(m: Match, view: string): boolean {
   switch (view) {
@@ -127,6 +148,17 @@ function FixtureContent() {
     return null;
   }, [equipo, fecha, matches, t, locale]);
 
+  // Grupo del pais buscado (su partido de fase de grupos), para mostrar su tabla.
+  const equipoGroup = useMemo(() => {
+    if (!equipo) return null;
+    const m = matches.find(
+      (x) =>
+        x.group != null &&
+        (x.homeTeam.code === equipo || x.awayTeam.code === equipo)
+    );
+    return m?.group ?? null;
+  }, [equipo, matches]);
+
   // Filtrar + agrupar segun la vista elegida.
   //  - Vistas por fecha (todos / busqueda): agrupamos por dia y reordenamos para
   //    que HOY quede primero (foco), luego los dias pasados de mas reciente a mas
@@ -198,23 +230,30 @@ function FixtureContent() {
 
   return (
     <div>
-      <Hero matches={matches} />
+      {/* La card con la cuenta regresiva no se muestra durante una busqueda. */}
+      {!searchFilterLabel && <Hero matches={matches} />}
       <p className="mb-4 text-sm text-suave">
         {user ? t('homeTaglineUser') : t('homeTaglineGuest')}
       </p>
 
       {!loading && matches.length > 0 && searchFilterLabel ? (
-        <div className="mb-6 flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-oro px-3 py-1.5 text-sm font-semibold text-negro">
-            {searchFilterLabel}
-          </span>
-          <button
-            onClick={() => router.push('/')}
-            className="rounded-full bg-carbon px-3 py-1.5 text-sm font-semibold text-suave transition hover:text-white"
-          >
-            {t('clearFilter')}
-          </button>
-        </div>
+        <>
+          <div className="mb-6 flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-oro px-3 py-1.5 text-sm font-semibold text-negro">
+              {searchFilterLabel}
+            </span>
+            <button
+              onClick={() => router.push('/')}
+              className="rounded-full bg-carbon px-3 py-1.5 text-sm font-semibold text-suave transition hover:text-white"
+            >
+              {t('clearFilter')}
+            </button>
+          </div>
+          {/* Al buscar por pais, su tabla de grupo (con el pais resaltado). */}
+          {equipo && equipoGroup && (
+            <TeamGroupStandings teamCode={equipo} group={equipoGroup} />
+          )}
+        </>
       ) : (
         !loading &&
         matches.length > 0 && <FixtureFilters value={view} onChange={setView} />
