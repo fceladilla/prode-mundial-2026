@@ -18,6 +18,7 @@
  */
 import { FieldValue, type Firestore } from 'firebase-admin/firestore';
 import { computePoints } from './scoring';
+import { resolveTeam } from './fixtureTeams';
 
 const API_URL = 'https://api.football-data.org/v4/competitions/WC/matches';
 
@@ -56,6 +57,7 @@ function scoreAt90(score: ApiMatch['score']): ApiScoreLine {
 
 export interface SyncSummary {
   finished: number;
+  filled: number;
   unmatched: number;
   logs: string[];
 }
@@ -151,6 +153,47 @@ export async function runSync(db: Firestore, apiKey: string): Promise<SyncSummar
     );
   }
 
+  // Indice de los partidos de la API por horario UTC exacto, para completar los
+  // cruces de eliminacion (que en nuestro fixture estan con equipos "TBD" y por
+  // eso no se pueden emparejar por codigo). Los kickoffs de eliminacion estan
+  // escalonados, asi que el utcDate es una clave unica.
+  const apiByTime = new Map<string, ApiMatch>();
+  for (const am of apiMatches) {
+    apiByTime.set(new Date(am.utcDate).toISOString(), am);
+  }
+
+  // Pase de completado: a cada cruce todavia en "TBD" le ponemos los equipos
+  // reales una vez que la API ya los definio, tomando nombre/bandera de nuestro
+  // catalogo (espanol + emoji). Sin lecturas extra: usa lo ya traido. Una vez
+  // con codigos reales, el sync normal lo finaliza por matchKey en proximas
+  // corridas.
+  let filled = 0;
+  const fillBatch = db.batch();
+  let fillOps = 0;
+  for (const doc of oursSnap.docs) {
+    const m = doc.data();
+    const homeTbd = !m.homeTeam?.code || m.homeTeam.code === 'TBD';
+    const awayTbd = !m.awayTeam?.code || m.awayTeam.code === 'TBD';
+    if (!homeTbd && !awayTbd) continue; // ya definido
+
+    const am = apiByTime.get(m.scheduledAt.toDate().toISOString());
+    if (!am) continue;
+    const ht = am.homeTeam.tla;
+    const at = am.awayTeam.tla;
+    if (!ht || !at) continue; // la API tampoco lo definio aun
+
+    const home = resolveTeam(ht, am.homeTeam.name);
+    const away = resolveTeam(at, am.awayTeam.name);
+    fillBatch.update(doc.ref, {
+      homeTeam: { name: home.name, code: home.code, flag: home.flag },
+      awayTeam: { name: away.name, code: away.code, flag: away.flag },
+    });
+    fillOps++;
+    filled++;
+    logs.push(`Cruce definido: ${home.code} vs ${away.code} (${doc.id})`);
+  }
+  if (fillOps) await fillBatch.commit();
+
   let finished = 0;
   let unmatched = 0;
 
@@ -186,8 +229,9 @@ export async function runSync(db: Firestore, apiKey: string): Promise<SyncSummar
 
   logs.push(
     `Listo. Finalizados: ${finished}` +
+      (filled ? ` | cruces definidos: ${filled}` : '') +
       (unmatched ? ` | sin emparejar: ${unmatched}` : '')
   );
 
-  return { finished, unmatched, logs };
+  return { finished, filled, unmatched, logs };
 }

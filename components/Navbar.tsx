@@ -123,6 +123,14 @@ export function Navbar() {
               {t('navRanking')}
             </NavLink>
             <NavLink
+              href="/clasificacion"
+              baseClassName="transition-colors"
+              activeClassName="font-bold text-oro"
+              inactiveClassName="text-suave hover:text-white"
+            >
+              {t('navStandings')}
+            </NavLink>
+            <NavLink
               href="/foro"
               baseClassName="transition-colors"
               activeClassName="font-bold text-oro"
@@ -258,6 +266,15 @@ export function Navbar() {
               inactiveClassName="text-suave hover:bg-white/5 hover:text-white"
             >
               {t('navRanking')}
+            </NavLink>
+            <NavLink
+              href="/clasificacion"
+              onClick={closeMenu}
+              baseClassName="rounded-md px-2 py-2 transition-colors"
+              activeClassName="bg-oro/10 font-bold text-oro"
+              inactiveClassName="text-suave hover:bg-white/5 hover:text-white"
+            >
+              {t('navStandings')}
             </NavLink>
             <NavLink
               href="/foro"
