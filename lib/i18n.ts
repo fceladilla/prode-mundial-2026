@@ -114,6 +114,7 @@ const es = {
 
   // Perfil
   loadingProfile: 'Cargando perfil...',
+  back: 'Volver',
   playerNotFound: 'No encontramos este jugador.',
   thisIsYourProfile: 'Este es tu perfil',
   exactCount: 'exactos',
@@ -252,6 +253,7 @@ const ca: Dict = {
     'Xerrada general del prode. Per comentar un partit concret, obre els comentaris des de la seva targeta al calendari.',
 
   loadingProfile: 'Carregant perfil...',
+  back: 'Tornar',
   playerNotFound: 'No hem trobat aquest jugador.',
   thisIsYourProfile: 'Aquest és el teu perfil',
   exactCount: 'exactes',
@@ -383,6 +385,7 @@ const en: Dict = {
     'General chat about the prode. To discuss a specific match, open the comments from its card in the fixtures.',
 
   loadingProfile: 'Loading profile...',
+  back: 'Back',
   playerNotFound: 'Player not found.',
   thisIsYourProfile: 'This is your profile',
   exactCount: 'exact',
