@@ -21,13 +21,37 @@ import { computePoints } from './scoring';
 
 const API_URL = 'https://api.football-data.org/v4/competitions/WC/matches';
 
+interface ApiScoreLine {
+  home: number | null;
+  away: number | null;
+}
+
 interface ApiMatch {
   id: number;
   utcDate: string;
   status: string; // SCHEDULED | TIMED | IN_PLAY | PAUSED | FINISHED | ...
   homeTeam: { tla?: string | null; name?: string | null };
   awayTeam: { tla?: string | null; name?: string | null };
-  score: { fullTime: { home: number | null; away: number | null } };
+  // En eliminacion `fullTime` INCLUYE prorroga y penales (ej: un 1-1 definido
+  // 4-2 por penales llega como 5-3). `regularTime` trae el marcador a los 90'
+  // y solo viene completo cuando hubo prorroga/penales; en partidos normales es
+  // null y ahi `fullTime` ya son los 90'. Ver scoreAt90().
+  score: {
+    fullTime: ApiScoreLine;
+    regularTime?: ApiScoreLine | null;
+  };
+}
+
+/**
+ * Marcador a los 90 minutos (tiempo reglamentario). Por decision del prode, la
+ * eliminacion directa se puntua por los 90' e ignora prorroga y penales:
+ * preferimos `regularTime` y caemos a `fullTime` cuando la API no lo provee
+ * (partidos que terminaron en tiempo reglamentario).
+ */
+function scoreAt90(score: ApiMatch['score']): ApiScoreLine {
+  const reg = score.regularTime;
+  if (reg && reg.home != null && reg.away != null) return reg;
+  return score.fullTime;
 }
 
 export interface SyncSummary {
@@ -148,8 +172,9 @@ export async function runSync(db: Firestore, apiKey: string): Promise<SyncSummar
       continue;
     }
 
-    const home = am.score.fullTime.home;
-    const away = am.score.fullTime.away;
+    const score90 = scoreAt90(am.score);
+    const home = score90.home;
+    const away = score90.away;
     if (home == null || away == null) continue;
     const { evaluated, skipped } = await finishMatch(db, ours.id, home, away);
     finished++;
