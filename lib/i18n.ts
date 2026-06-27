@@ -143,6 +143,7 @@ const es = {
   // SearchBar
   searchPlaceholder: 'Buscar pais, fecha o jugador...',
   searchTeams: 'Equipos',
+  searchGroups: 'Grupos',
   searchDates: 'Fechas',
   searchMatches: 'Partidos',
   searchPlayers: 'Jugadores',
@@ -297,6 +298,7 @@ const ca: Dict = {
 
   searchPlaceholder: 'Cerca país, data o jugador...',
   searchTeams: 'Equips',
+  searchGroups: 'Grups',
   searchDates: 'Dates',
   searchMatches: 'Partits',
   searchPlayers: 'Jugadors',
@@ -445,6 +447,7 @@ const en: Dict = {
 
   searchPlaceholder: 'Search country, date or player...',
   searchTeams: 'Teams',
+  searchGroups: 'Groups',
   searchDates: 'Dates',
   searchMatches: 'Matches',
   searchPlayers: 'Players',

@@ -55,7 +55,7 @@ app/
 
 Planned but **not yet built** (see SOP §8): `partido/[id]/page.tsx` (match detail). Score entry happens inline on `MatchCard`, which also hosts collapsible per-match comments (`CommentSection`) and the all-players predictions panel (`MatchPredictionsPanel`, post-kickoff only).
 
-Components live flat under `components/` (`Navbar`, `Sidebar`, `MatchCard`, `LeaderboardTable`, `Avatar`, `SearchBar`, `CommentSection`, `MatchPredictionsPanel`, `FixtureFilters`, `Flag`, `AnimatedNumber`), not in the nested subfolders the SOP proposes. `SearchBar` (in the Navbar) filters matches client-side and prefix-searches users via the `displayNameLower` field (written/backfilled on sign-in in `hooks/useAuth.tsx`).
+Components live flat under `components/` (`Navbar`, `Sidebar`, `MatchCard`, `LeaderboardTable`, `Avatar`, `SearchBar`, `CommentSection`, `MatchPredictionsPanel`, `FixtureFilters`, `Flag`, `AnimatedNumber`), not in the nested subfolders the SOP proposes. `SearchBar` (in the Navbar) searches client-side over teams, **groups** (typing "grupo A" → navigates to `/clasificacion?grupo=A`, which filters the standings to that group), dates, matches and users — all matched in-memory (accent-insensitive substring), with users loaded once from the public `users` collection.
 
 On the home fixture each section (day or stage/group) is collapsible. The default is derived, not stored: a section starts **collapsed when all its matches are `finished`** (already played) and expanded otherwise, so past days fold away and you land on the current day. Only explicit user toggles are kept in state (`collapsedOverrides`), so the live `onSnapshot` updates never re-open/close a section the user touched.
 

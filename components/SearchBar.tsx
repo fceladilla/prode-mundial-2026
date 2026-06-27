@@ -27,6 +27,7 @@ interface DateResult {
 
 type Result =
   | { kind: 'team'; team: Team; count: number }
+  | { kind: 'group'; group: string } // letra del grupo: "A".."L"
   | { kind: 'date'; date: DateResult }
   | { kind: 'match'; match: Match }
   | { kind: 'user'; user: UserResult };
@@ -53,6 +54,12 @@ function dateForms(key: string, label: string): string[] {
   if (key === todayKey) forms.push('hoy', 'avui', 'today');
   if (key === tomorrowKey) forms.push('manana', 'dema', 'tomorrow');
   return forms;
+}
+
+/** Formas escribibles de un grupo ("grupo a", "grup a", "group a"), normalizadas. */
+function groupForms(letter: string): string[] {
+  const l = letter.toLowerCase();
+  return [`grupo ${l}`, `grup ${l}`, `group ${l}`, `grupo${l}`];
 }
 
 function scrollToMatch(matchId: string) {
@@ -122,6 +129,14 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
         .slice(0, MAX_PER_GROUP)
         .map((e) => ({ kind: 'team' as const, ...e }));
 
+      // Grupos: letras distintas (A..L) cuya forma escrita coincide ("grupo a").
+      const groupSet = new Set<string>();
+      for (const m of all) if (m.group) groupSet.add(m.group);
+      const groupHits: Result[] = Array.from(groupSet)
+        .sort()
+        .filter((letter) => groupForms(letter).some((f) => f.includes(nt)))
+        .map((group) => ({ kind: 'group' as const, group }));
+
       // Fechas: dias distintos cuya forma escrita coincide con el termino.
       const dayMap = new Map<string, DateResult>();
       for (const m of all) {
@@ -168,7 +183,13 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
         .slice(0, MAX_PER_GROUP)
         .map((user) => ({ kind: 'user' as const, user }));
 
-      setResults([...teamHits, ...dateHits, ...matchHits, ...userHits]);
+      setResults([
+        ...teamHits,
+        ...groupHits,
+        ...dateHits,
+        ...matchHits,
+        ...userHits,
+      ]);
       setActive(0);
       setOpen(true);
     }, 300);
@@ -192,6 +213,8 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
       router.push(`/perfil/${r.user.uid}`);
     } else if (r.kind === 'team') {
       router.push(`/?equipo=${encodeURIComponent(r.team.code)}`);
+    } else if (r.kind === 'group') {
+      router.push(`/clasificacion?grupo=${encodeURIComponent(r.group)}`);
     } else if (r.kind === 'date') {
       router.push(`/?fecha=${r.date.key}`);
     } else {
@@ -225,13 +248,22 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
   // activo del teclado coincida con el orden visual.
   const groups: { title: string; items: { result: Result; idx: number }[] }[] = [
     { title: t('searchTeams'), items: [] },
+    { title: t('searchGroups'), items: [] },
     { title: t('searchDates'), items: [] },
     { title: t('searchMatches'), items: [] },
     { title: t('searchPlayers'), items: [] },
   ];
   results.forEach((result, idx) => {
     const gi =
-      result.kind === 'team' ? 0 : result.kind === 'date' ? 1 : result.kind === 'match' ? 2 : 3;
+      result.kind === 'team'
+        ? 0
+        : result.kind === 'group'
+          ? 1
+          : result.kind === 'date'
+            ? 2
+            : result.kind === 'match'
+              ? 3
+              : 4;
     groups[gi].items.push({ result, idx });
   });
 
@@ -284,6 +316,16 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
                           </span>
                           <span className="shrink-0 text-xs text-suave">
                             {r.count} {r.count === 1 ? t('match') : t('matches')}
+                          </span>
+                        </>
+                      ) : r.kind === 'group' ? (
+                        <>
+                          <span aria-hidden>🏆</span>
+                          <span className="min-w-0 flex-1 truncate">
+                            {t('standingsGroup', { group: r.group })}
+                          </span>
+                          <span className="shrink-0 text-xs text-suave">
+                            {t('navStandings')}
                           </span>
                         </>
                       ) : r.kind === 'date' ? (
