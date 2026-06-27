@@ -60,26 +60,30 @@ export async function GET() {
 
     const groups = (data.standings ?? [])
       .filter((s) => s.type === 'TOTAL' && s.group)
-      .map((s) => ({
+      .map((s) => {
         // La API devuelve el grupo como "Group A" (a veces "GROUP_A"): tomamos
         // el ultimo token -> "A".
-        id: (s.group as string).trim().split(/[\s_]+/).pop() ?? s.group,
-        table: s.table.map((r) => {
-          const team = resolveTeam(r.team.tla, r.team.name);
-          return {
-            position: r.position,
-            team: { name: team.name, code: team.code, flag: team.flag },
-            played: r.playedGames,
-            won: r.won,
-            draw: r.draw,
-            lost: r.lost,
-            gf: r.goalsFor,
-            ga: r.goalsAgainst,
-            gd: r.goalDifference,
-            points: r.points,
-          };
-        }),
-      }))
+        const raw = s.group as string;
+        const id = raw.trim().split(/[\s_]+/).pop() || raw;
+        return {
+          id,
+          table: s.table.map((r) => {
+            const team = resolveTeam(r.team.tla, r.team.name);
+            return {
+              position: r.position,
+              team: { name: team.name, code: team.code, flag: team.flag },
+              played: r.playedGames,
+              won: r.won,
+              draw: r.draw,
+              lost: r.lost,
+              gf: r.goalsFor,
+              ga: r.goalsAgainst,
+              gd: r.goalDifference,
+              points: r.points,
+            };
+          }),
+        };
+      })
       .sort((a, b) => a.id.localeCompare(b.id));
 
     return NextResponse.json({ ok: true, groups });
