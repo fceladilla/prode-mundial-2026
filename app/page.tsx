@@ -5,8 +5,11 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   collection,
+  doc,
+  getDoc,
+  getDocs,
+  getDocsFromCache,
   onSnapshot,
-  orderBy,
   query,
   where,
 } from 'firebase/firestore';
@@ -77,7 +80,19 @@ function FixtureContent() {
   const searchParams = useSearchParams();
   const equipo = searchParams.get('equipo'); // codigo FIFA, ej. "ARG"
   const fecha = searchParams.get('fecha'); // dia ART, ej. "2026-06-11"
-  const [matches, setMatches] = useState<Match[]>([]);
+  // Partidos indexados por id. Se alimenta de dos fuentes (ver effects):
+  // un listener en vivo SOLO sobre los no finalizados y una lectura unica
+  // (cache-first) de los finalizados, que no cambian. Asi no se relee todo el
+  // fixture en cada carga/expiracion de token: el peor caso queda acotado al
+  // set chico de no finalizados.
+  const [matchesById, setMatchesById] = useState<Record<string, Match>>({});
+  const matches = useMemo(
+    () =>
+      Object.values(matchesById).sort(
+        (a, b) => a.scheduledAt.toMillis() - b.scheduledAt.toMillis()
+      ),
+    [matchesById]
+  );
   const [predictions, setPredictions] = useState<Record<string, Prediction>>({});
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('todos');
@@ -88,18 +103,72 @@ function FixtureContent() {
     Record<string, boolean>
   >({});
 
-  // Partidos en tiempo real, ordenados por fecha.
+  // Finalizados: lectura UNICA, primero desde el cache (gratis). Como un partido
+  // finalizado no cambia nunca, no necesita listener en vivo. Solo la primera vez
+  // (cache frio) se leen del server. Los que terminen despues entran por el
+  // listener de abajo, asi que el conjunto siempre queda completo.
   useEffect(() => {
-    const q = query(
-      collection(getDbClient(), 'matches'),
-      orderBy('scheduledAt', 'asc')
+    const db = getDbClient();
+    const fq = query(
+      collection(db, 'matches'),
+      where('status', '==', 'finished')
+    );
+    let cancelled = false;
+    (async () => {
+      let snap;
+      try {
+        snap = await getDocsFromCache(fq);
+        if (snap.empty) throw new Error('cache vacio');
+      } catch {
+        snap = await getDocs(fq); // frio (primera visita): server, una sola vez
+      }
+      if (cancelled) return;
+      const add: Record<string, Match> = {};
+      snap.forEach((d) => {
+        add[d.id] = { id: d.id, ...(d.data() as Omit<Match, 'id'>) };
+      });
+      // `prev` (lo no finalizado / ya mergeado) gana ante un eventual solapado.
+      setMatchesById((prev) => ({ ...add, ...prev }));
+    })().catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // No finalizados: en vivo. Es el unico set que cambia (y se achica con el
+  // torneo), asi que un re-cobro por token expirado cuesta solo este puñado, no
+  // los 104. Cuando un partido termina sale de esta query (evento 'removed') y
+  // traemos su version final con un getDoc puntual (1 lectura).
+  useEffect(() => {
+    const db = getDbClient();
+    const lq = query(
+      collection(db, 'matches'),
+      where('status', '!=', 'finished')
     );
     return onSnapshot(
-      q,
+      lq,
       (snap) => {
-        setMatches(
-          snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Match, 'id'>) }))
-        );
+        setMatchesById((prev) => {
+          const next = { ...prev };
+          for (const ch of snap.docChanges()) {
+            const id = ch.doc.id;
+            if (ch.type === 'removed') {
+              // Dejo de ser "no finalizado" => termino: traigo el doc final.
+              getDoc(doc(db, 'matches', id))
+                .then((d) => {
+                  if (d.exists())
+                    setMatchesById((p) => ({
+                      ...p,
+                      [id]: { id: d.id, ...(d.data() as Omit<Match, 'id'>) },
+                    }));
+                })
+                .catch(() => {});
+            } else {
+              next[id] = { id, ...(ch.doc.data() as Omit<Match, 'id'>) };
+            }
+          }
+          return next;
+        });
         setLoading(false);
       },
       () => setLoading(false)
