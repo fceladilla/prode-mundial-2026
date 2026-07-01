@@ -19,6 +19,7 @@
 import { FieldValue, type Firestore } from 'firebase-admin/firestore';
 import { computePoints } from './scoring';
 import { resolveTeam } from './fixtureTeams';
+import type { MatchResult, ResultDetail } from './types';
 
 const API_URL = 'https://api.football-data.org/v4/competitions/WC/matches';
 
@@ -27,32 +28,80 @@ interface ApiScoreLine {
   away: number | null;
 }
 
+// En eliminacion `fullTime` es el TOTAL: fullTime = regularTime + extraTime +
+// penales (ej: un 1-1 definido 4-2 por penales llega como 5-3). `regularTime`
+// trae el marcador a los 90' pero la API a veces lo deja en null (ej: cruces
+// definidos en la prorroga: viene null aunque haya extraTime). Por eso NUNCA
+// alcanza con preferir `regularTime`: derivamos los 90' restando prorroga y
+// penales. Ver scoreAt90().
+interface ApiScore {
+  winner?: string | null; // HOME_TEAM | AWAY_TEAM | DRAW
+  duration?: string | null; // REGULAR | EXTRA_TIME | PENALTY_SHOOTOUT
+  fullTime: ApiScoreLine;
+  regularTime?: ApiScoreLine | null;
+  extraTime?: ApiScoreLine | null;
+  penalties?: ApiScoreLine | null;
+}
+
 interface ApiMatch {
   id: number;
   utcDate: string;
   status: string; // SCHEDULED | TIMED | IN_PLAY | PAUSED | FINISHED | ...
   homeTeam: { tla?: string | null; name?: string | null };
   awayTeam: { tla?: string | null; name?: string | null };
-  // En eliminacion `fullTime` INCLUYE prorroga y penales (ej: un 1-1 definido
-  // 4-2 por penales llega como 5-3). `regularTime` trae el marcador a los 90'
-  // y solo viene completo cuando hubo prorroga/penales; en partidos normales es
-  // null y ahi `fullTime` ya son los 90'. Ver scoreAt90().
-  score: {
-    fullTime: ApiScoreLine;
-    regularTime?: ApiScoreLine | null;
-  };
+  score: ApiScore;
 }
 
 /**
  * Marcador a los 90 minutos (tiempo reglamentario). Por decision del prode, la
- * eliminacion directa se puntua por los 90' e ignora prorroga y penales:
- * preferimos `regularTime` y caemos a `fullTime` cuando la API no lo provee
- * (partidos que terminaron en tiempo reglamentario).
+ * eliminacion directa se puntua por los 90' e ignora prorroga y penales.
+ * Usamos `regularTime` cuando viene, pero como la API a veces lo deja en null
+ * (partidos definidos en la prorroga), lo derivamos del total:
+ *   90' = fullTime - prorroga - penales   (componente a componente)
+ * En partidos normales no hay extraTime/penalties, asi que queda = fullTime.
  */
-function scoreAt90(score: ApiMatch['score']): ApiScoreLine {
+export function scoreAt90(score: ApiScore): ApiScoreLine {
   const reg = score.regularTime;
   if (reg && reg.home != null && reg.away != null) return reg;
-  return score.fullTime;
+  const ft = score.fullTime;
+  if (ft.home == null || ft.away == null) return ft;
+  const et = score.extraTime;
+  const pk = score.penalties;
+  return {
+    home: ft.home - (et?.home ?? 0) - (pk?.home ?? 0),
+    away: ft.away - (et?.away ?? 0) - (pk?.away ?? 0),
+  };
+}
+
+/**
+ * Detalle a mostrar cuando un cruce NO se definio en los 90' (prorroga o
+ * penales). Devuelve null en partidos normales. NO afecta el puntaje: es solo
+ * para que la UI muestre como termino realmente y quien avanzo.
+ */
+export function knockoutDetail(score: ApiScore): ResultDetail | null {
+  const dur = score.duration;
+  if (dur !== 'EXTRA_TIME' && dur !== 'PENALTY_SHOOTOUT') return null;
+
+  const ft = score.fullTime;
+  const pk = score.penalties;
+  const pkHome = pk?.home ?? 0;
+  const pkAway = pk?.away ?? 0;
+  // `fullTime` incluye penales, asi que el marcador tras la prorroga (antes de
+  // la tanda) = fullTime - penales.
+  const fullTime: MatchResult = {
+    homeGoals: (ft.home ?? 0) - pkHome,
+    awayGoals: (ft.away ?? 0) - pkAway,
+  };
+  const penalties: MatchResult | null =
+    dur === 'PENALTY_SHOOTOUT' ? { homeGoals: pkHome, awayGoals: pkAway } : null;
+
+  let winner: 'home' | 'away';
+  if (score.winner === 'HOME_TEAM') winner = 'home';
+  else if (score.winner === 'AWAY_TEAM') winner = 'away';
+  else if (dur === 'PENALTY_SHOOTOUT') winner = pkHome >= pkAway ? 'home' : 'away';
+  else winner = fullTime.homeGoals >= fullTime.awayGoals ? 'home' : 'away';
+
+  return { duration: dur, fullTime, penalties, winner };
 }
 
 export interface SyncSummary {
@@ -88,7 +137,8 @@ async function finishMatch(
   db: Firestore,
   matchId: string,
   homeGoals: number,
-  awayGoals: number
+  awayGoals: number,
+  detail: ResultDetail | null
 ): Promise<{ evaluated: number; skipped: number }> {
   const predsSnap = await db
     .collection('predictions')
@@ -97,8 +147,11 @@ async function finishMatch(
 
   const batch = db.batch();
   batch.update(db.collection('matches').doc(matchId), {
+    // OJO: `homeGoals`/`awayGoals` son los 90' (ver scoreAt90) — el puntaje se
+    // calcula con esto. El detalle de prorroga/penales va aparte en resultDetail.
     result: { homeGoals, awayGoals },
     status: 'finished',
+    resultDetail: detail, // null en partidos definidos en los 90'
     liveScore: null, // ya no hay parcial: el resultado final es `result`
   });
 
@@ -219,7 +272,8 @@ export async function runSync(db: Firestore, apiKey: string): Promise<SyncSummar
     const home = score90.home;
     const away = score90.away;
     if (home == null || away == null) continue;
-    const { evaluated, skipped } = await finishMatch(db, ours.id, home, away);
+    const detail = knockoutDetail(am.score);
+    const { evaluated, skipped } = await finishMatch(db, ours.id, home, away, detail);
     finished++;
     logs.push(
       `OK: ${homeTla} ${home}-${away} ${awayTla} (${ours.id}) -> finished | ` +

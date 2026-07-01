@@ -19,6 +19,22 @@ export interface MatchResult {
   awayGoals: number;
 }
 
+/**
+ * Detalle de un cruce de eliminacion que NO se definio en los 90'. El puntaje
+ * SIEMPRE se calcula con `result` (los 90'); esto es solo para mostrar como
+ * termino realmente el partido (prorroga / penales) y quien avanzo.
+ */
+export interface ResultDetail {
+  duration: 'EXTRA_TIME' | 'PENALTY_SHOOTOUT';
+  // Marcador tras la prorroga, antes de los penales (en un partido definido por
+  // penales suele ser el mismo que los 90').
+  fullTime: MatchResult;
+  // Tanda de penales, si la hubo.
+  penalties: MatchResult | null;
+  // Quien avanzo.
+  winner: 'home' | 'away';
+}
+
 export interface Match {
   id: string;
   matchNumber: number;
@@ -32,6 +48,9 @@ export interface Match {
   scheduledAtESP: string;
   status: MatchStatus;
   result: MatchResult | null;
+  // Solo en cruces definidos por prorroga/penales (ver ResultDetail). El
+  // puntaje se calcula con `result` (90'); esto es para mostrar como termino.
+  resultDetail?: ResultDetail | null;
   // Resultado parcial mientras el partido esta "live" (lo refresca el sync en
   // cada corrida). Separado de `result` a proposito: la logica de puntaje NUNCA
   // lo lee, asi no hay riesgo de asignar puntos sobre un marcador en juego.

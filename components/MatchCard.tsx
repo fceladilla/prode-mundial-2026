@@ -219,6 +219,30 @@ export function MatchCard({
         )}
       </div>
 
+      {/* Cruce definido fuera de los 90': el marcador de arriba son los 90'
+          (con lo que se puntua); aca se aclara como termino y quien avanzo. */}
+      {match.status === 'finished' && match.resultDetail && (
+        <p className="mt-2 text-center text-xs text-suave">
+          {match.resultDetail.duration === 'PENALTY_SHOOTOUT'
+            ? t('advancedPenalties', {
+                name:
+                  match.resultDetail.winner === 'home'
+                    ? match.homeTeam.name
+                    : match.awayTeam.name,
+                score: `${match.resultDetail.penalties?.homeGoals ?? 0}-${
+                  match.resultDetail.penalties?.awayGoals ?? 0
+                }`,
+              })
+            : t('advancedExtraTime', {
+                name:
+                  match.resultDetail.winner === 'home'
+                    ? match.homeTeam.name
+                    : match.awayTeam.name,
+                score: `${match.resultDetail.fullTime.homeGoals}-${match.resultDetail.fullTime.awayGoals}`,
+              })}
+        </p>
+      )}
+
       {canPredict && (
         <div className="mt-3 flex items-center justify-end gap-3">
           {prediction && (

@@ -72,6 +72,8 @@ const es = {
   statusLive: 'EN VIVO',
   statusFinished: 'FINALIZADO',
   partialScore: 'Parcial',
+  advancedExtraTime: '🏆 {name} avanzo en la prorroga ({score})',
+  advancedPenalties: '🏆 {name} avanzo por penales ({score})',
 
   // MatchCard
   goalsOf: 'Goles {name}',
@@ -234,6 +236,8 @@ const ca: Dict = {
   statusLive: 'EN DIRECTE',
   partialScore: 'Parcial',
   statusFinished: 'FINALITZAT',
+  advancedExtraTime: '🏆 {name} va avancar a la prorroga ({score})',
+  advancedPenalties: '🏆 {name} va avancar als penals ({score})',
 
   goalsOf: 'Gols {name}',
   yourPrediction: 'El teu pronòstic',
@@ -383,6 +387,8 @@ const en: Dict = {
   statusLive: 'LIVE',
   partialScore: 'Live',
   statusFinished: 'FINISHED',
+  advancedExtraTime: '🏆 {name} advanced in extra time ({score})',
+  advancedPenalties: '🏆 {name} advanced on penalties ({score})',
 
   goalsOf: '{name} goals',
   yourPrediction: 'Your prediction',
