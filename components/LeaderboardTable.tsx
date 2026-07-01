@@ -38,12 +38,19 @@ export function LeaderboardTable({ limitRows = 50 }: { limitRows?: number }) {
       fbLimit(limitRows)
     );
     return onSnapshot(q, (snap) => {
-      setRows(
-        snap.docs.map((d) => ({
-          id: d.id,
-          ...(d.data() as Omit<LeaderboardUser, 'id'>),
-        }))
+      const data = snap.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as Omit<LeaderboardUser, 'id'>),
+      }));
+      // Firestore ya los trae por puntaje desc; aca aplicamos el desempate: a
+      // igual puntaje, queda mejor posicionado quien tiene mas aciertos
+      // (correctResults). Se ordena en cliente para no requerir indice compuesto.
+      data.sort(
+        (a, b) =>
+          (b.totalPoints ?? 0) - (a.totalPoints ?? 0) ||
+          (b.correctResults ?? 0) - (a.correctResults ?? 0)
       );
+      setRows(data);
     });
   }, [limitRows]);
 
