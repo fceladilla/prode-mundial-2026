@@ -5,8 +5,9 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useLanguage } from '@/hooks/useLanguage';
 import { argDateKey } from '@/lib/dates';
 import { formatLocalKickoff } from '@/lib/time';
-import type { Match } from '@/lib/types';
+import type { Match, Team } from '@/lib/types';
 import { Flag } from './Flag';
+import { Champions } from './Champions';
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
 const ms = (m: Match) => m.scheduledAt?.toMillis?.() ?? 0;
@@ -153,6 +154,50 @@ function MatchRow({ match, now }: { match: Match; now: number }) {
 }
 
 /**
+ * Ganador real de un cruce: si se definio por prorroga/penales lo dice
+ * `resultDetail.winner`; si no, gana quien hizo mas goles en los 90'. Devuelve
+ * null si no hay resultado o quedo empatado sin detalle (no deberia pasar en una
+ * Final).
+ */
+function matchWinner(m: Match): Team | null {
+  if (m.resultDetail) {
+    return m.resultDetail.winner === 'home' ? m.homeTeam : m.awayTeam;
+  }
+  if (!m.result) return null;
+  if (m.result.homeGoals > m.result.awayGoals) return m.homeTeam;
+  if (m.result.awayGoals > m.result.homeGoals) return m.awayTeam;
+  return null;
+}
+
+/**
+ * Banner del campeon del MUNDO (el pais que gano la Final). Argentina lleva un
+ * mensaje propio ("Bicampeon"); el resto usa el generico "<pais> campeon del
+ * mundo".
+ */
+function WorldChampionBanner({ team }: { team: Team }) {
+  const { t } = useLanguage();
+  const text =
+    team.code === 'ARG'
+      ? t('worldChampionArg')
+      : t('worldChampion', { country: team.name });
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="relative mt-4 flex items-center justify-center gap-3 rounded-xl border border-oro/50 bg-gradient-to-r from-oro/20 via-oro/10 to-oro/20 px-4 py-3 shadow-[0_0_18px_rgba(201,168,76,0.25)]"
+    >
+      <span className="text-2xl leading-none">🏆</span>
+      <Flag flag={team.flag} code={team.code} name={team.name} height={26} />
+      <span className="text-center font-display text-lg font-bold text-white sm:text-xl">
+        {text}
+      </span>
+      <span className="text-2xl leading-none">🏆</span>
+    </motion.div>
+  );
+}
+
+/**
  * Hero del home con identidad de Mundial. Muestra los partidos del DIA: los que
  * estan en vivo con su badge y los proximos con su cuenta regresiva. Si hoy no
  * hay partidos pendientes, cae al proximo partido del fixture.
@@ -165,12 +210,22 @@ export function Hero({ matches }: { matches: Match[] }) {
   const { t } = useLanguage();
   const [now, setNow] = useState(() => Date.now());
 
-  // Tick local de 1s, solo si hay partidos pendientes.
+  // Fin del torneo: una vez jugada la Final mostramos el campeon del mundo y el
+  // podio del prode en lugar de la lista de partidos. Detectamos la Final
+  // puntualmente (no "todos finalizados") para no dar un falso positivo mientras
+  // el fixture termina de cargar desde el cache.
+  const finalMatch = matches.find(
+    (m) => m.stage === 'Final' && m.status === 'finished'
+  );
+  const tournamentOver = Boolean(finalMatch);
+  const worldChampion = finalMatch ? matchWinner(finalMatch) : null;
+
+  // Tick local de 1s, solo si hay partidos pendientes (y el torneo no termino).
   useEffect(() => {
-    if (matches.length === 0) return;
+    if (matches.length === 0 || tournamentOver) return;
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, [matches.length]);
+  }, [matches.length, tournamentOver]);
 
   // Partidos de hoy (en hora argentina, igual que el agrupado del fixture).
   // Incluye finalizados, en vivo y por venir del dia.
@@ -201,7 +256,12 @@ export function Hero({ matches }: { matches: Match[] }) {
         {t('homeTitle')}
       </h1>
 
-      {list.length > 0 ? (
+      {tournamentOver ? (
+        <>
+          {worldChampion && <WorldChampionBanner team={worldChampion} />}
+          <Champions />
+        </>
+      ) : list.length > 0 ? (
         <div className="relative mt-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-oro">
             {t(headerKey)}

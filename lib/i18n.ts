@@ -173,6 +173,15 @@ const es = {
   heroUnitMin: 'min',
   heroUnitSec: 'seg',
 
+  // Cierre del torneo: podio del prode en el Hero
+  heroChampionsTitle: 'El Mundial terminó',
+  heroChampion: 'Campeón del prode',
+  heroCongrats: '🎉 Felicitaciones {name}',
+  heroThanks: 'Gracias a todos por participar 🙌',
+  heroPts: 'pts',
+  worldChampion: '{country} campeón del mundo',
+  worldChampionArg: 'Argentina Bicampeón del Mundo',
+
   // Tiempo relativo
   now: 'ahora',
   minutesAgo: 'hace {n} min',
@@ -328,6 +337,15 @@ const ca: Dict = {
   heroUnitMin: 'min',
   heroUnitSec: 'seg',
 
+  // Tancament del torneig: podi del prode al Hero
+  heroChampionsTitle: "El Mundial s'ha acabat",
+  heroChampion: 'Campió del prode',
+  heroCongrats: '🎉 Felicitats {name}',
+  heroThanks: 'Gràcies a tothom per participar 🙌',
+  heroPts: 'pts',
+  worldChampion: '{country} campió del món',
+  worldChampionArg: 'Argentina bicampió del món',
+
   now: 'ara',
   minutesAgo: 'fa {n} min',
   hoursAgo: 'fa {n} h',
@@ -478,6 +496,15 @@ const en: Dict = {
   heroUnitHours: 'h',
   heroUnitMin: 'min',
   heroUnitSec: 'sec',
+
+  // Tournament wrap-up: prode podium in the Hero
+  heroChampionsTitle: 'The World Cup is over',
+  heroChampion: 'Prode champion',
+  heroCongrats: '🎉 Congratulations {name}',
+  heroThanks: 'Thanks everyone for playing 🙌',
+  heroPts: 'pts',
+  worldChampion: '{country} — World Champions',
+  worldChampionArg: 'Argentina — back-to-back World Champions',
 
   now: 'now',
   minutesAgo: '{n} min ago',
