@@ -1,14 +1,9 @@
 # Sincroniza resultados desde football-data.org durante el Mundial
 # (11 jun - 19 jul 2026) y evalua los pronosticos.
 #
-# Cadencia (cron en UTC): el sync solo FINALIZA partidos (resultado + puntos);
-# el "en vivo" se calcula en el cliente por la hora de kickoff (sin escrituras) y
-# los pronosticos se cierran/revelan a la hora exacta (cliente + reglas). Por eso
-# no hace falta correr seguido: cada 30 min durante la franja de partidos alcanza
-# para finalizar poco despues de que terminan, y mantiene bajo el consumo de
-# lecturas de Firestore (plan Spark con tope diario). Cada corrida hace 1 request
-# a football-data.org (limite 10/min). La franja 15-05 UTC cubre desde el kickoff
-# mas temprano (mediodia ET ~16 UTC) hasta el final del mas tardio (noche PT ~06).
+# El Mundial termino (final 19 jul 2026): el schedule automatico esta
+# desactivado para no seguir consultando la API ni gastando cuota de Firestore.
+# Se deja workflow_dispatch por si hace falta correrlo a mano.
 #
 # Secrets requeridos (Settings -> Secrets and variables -> Actions):
 #   FOOTBALL_DATA_API_KEY     token de football-data.org (plan gratuito)
@@ -16,11 +11,6 @@
 name: Sync resultados
 
 on:
-  schedule:
-    # Cada 30 min durante horas de partido (UTC).
-    - cron: '*/30 15-23,0-5 * * *'
-    # Cada 2 horas el resto del dia (red de seguridad).
-    - cron: '0 6-14/2 * * *'
   workflow_dispatch:
 
 jobs:

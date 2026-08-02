@@ -146,3 +146,9 @@ Dark-mode-first palette:
 | `#2D6A4F` | Verde Estadio | Finished match indicators |
 
 Framer Motion drives the interaction polish: staggered `MatchCard` entrances; `AnimatedNumber` (`components/AnimatedNumber.tsx`) for numbers that roll to their new value (live scoreboard, `+X pts`, leaderboard totals — it skips the first render and only animates on change); tactile `whileTap`/`whileHover` on the Save / sign-in buttons and fixture filter chips; the `LeaderboardTable` rows reorder with a `layout` spring as points change; the active fixture filter has a sliding `layoutId` pill. The active nav section is highlighted (oro + bold) in the `Navbar` via `usePathname` (`NavLink`).
+
+## Contexto en Obsidian
+
+La nota de este proyecto vive en `C:\Users\fcela\Documents\Boveda\proyectos\prode-fifa2026.md`.
+No la leas automáticamente al arrancar sesión. Solo abrila si te pido
+"poné el proyecto en contexto" o al correr la skill sync-proyecto.
